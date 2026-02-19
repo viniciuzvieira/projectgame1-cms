@@ -25,7 +25,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props => {
 
     // ✅ Loga mount/unmount do componente
     useEffect(() => {
-        console.log(`[ToolbarView] mounted => ${TOOLBAR_DEBUG_BUILD}`, { isInRoom });
+        console.log(`TESTEEEE => ${TOOLBAR_DEBUG_BUILD}`, { isInRoom });
 
         return () => {
             console.log(`[ToolbarView] unmounted => ${TOOLBAR_DEBUG_BUILD}`);

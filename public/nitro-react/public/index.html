@@ -21,14 +21,53 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root" class="w-100 h-100"></div>
+
     <script>
       const NitroConfig = {
-        "config.urls": [ '/renderer-config.json', '/ui-config.json' ],
+        "config.urls": [ "renderer-config.json", "ui-config.json" ],
         "sso.ticket": (new URLSearchParams(window.location.search).get('sso') || null),
         "forward.type": (new URLSearchParams(window.location.search).get('room') ? 2 : -1),
         "forward.id": (new URLSearchParams(window.location.search).get('room') || 0),
         "friend.id": (new URLSearchParams(window.location.search).get('friend') || 0),
       };
+    </script>
+
+    <script>
+      (async () => {
+        try {
+          const res = await fetch('./asset-manifest.json', { cache: 'no-store' });
+          const manifest = await res.json();
+
+          const entrypoints = (manifest.entrypoints || [])
+            .map(p => (typeof p === 'string' ? p : ''))
+            .filter(Boolean)
+            .map(p => (p.startsWith('/') ? '.' + p : p)); // garante relativo
+
+          // CSS primeiro
+          for (const href of entrypoints.filter(p => p.endsWith('.css'))) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+          }
+
+          // JS na ordem (runtime -> renderer -> vendors -> main)
+          const scripts = entrypoints.filter(p => p.endsWith('.js'));
+
+          for (const src of scripts) {
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script');
+              s.src = src;
+              s.async = false; // MUITO importante para manter a ordem
+              s.onload = resolve;
+              s.onerror = reject;
+              document.body.appendChild(s);
+            });
+          }
+        } catch (e) {
+          console.error('[Nitro] Falha ao carregar entrypoints do asset-manifest.json', e);
+        }
+      })();
     </script>
   </body>
 </html>
