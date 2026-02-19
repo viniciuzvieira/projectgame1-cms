@@ -24,8 +24,3 @@
 Thumbs.db
 
 # Nitro
-/build
-*.zip
-.env
-public/renderer-config.json
-public/ui-config.json
