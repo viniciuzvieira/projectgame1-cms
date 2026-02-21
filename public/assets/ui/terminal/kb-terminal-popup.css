@@ -1,0 +1,165 @@
+.kb-term-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    pointer-events: none; /* não bloqueia o jogo */
+}
+.kb-term-overlay.kb-open {
+    display: block;
+}
+
+.kb-term-frame {
+    position: fixed;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 360px; /* menor/discreto */
+    max-width: 46vw;
+    aspect-ratio: 676 / 494;
+    user-select: none;
+    pointer-events: auto; /* só o popup recebe clique */
+    cursor: grab;
+    touch-action: none;
+}
+.kb-term-frame.kb-dragging {
+    cursor: grabbing;
+}
+
+.kb-term-frame img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* área da tela (ajuste fino se quiser) */
+.kb-term-frame {
+    --screen-left: 19.53%;
+    --screen-top: 20.85%;
+    --screen-width: 60.36%;
+    --screen-height: 30.36%;
+}
+
+.kb-term-screen {
+    position: absolute;
+    left: var(--screen-left);
+    top: var(--screen-top);
+    width: var(--screen-width);
+    height: var(--screen-height);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0f1a0f;
+    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.65);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+    color: rgba(128, 255, 128, 0.88);
+}
+
+/* scan/glare/scanlines */
+.kb-term-screen::before,
+.kb-term-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+@keyframes kbScan {
+    0% {
+        background-position: 0 -120%;
+    }
+    35%,
+    100% {
+        background-position: 0 120%;
+    }
+}
+.kb-term-screen::before {
+    background-image: linear-gradient(
+        0deg,
+        transparent 0%,
+        rgba(32, 128, 32, 0.15) 2%,
+        rgba(32, 128, 32, 0.55) 3%,
+        rgba(32, 128, 32, 0.15) 3%,
+        transparent 100%
+    );
+    background-repeat: no-repeat;
+    animation: kbScan 7.5s linear infinite;
+}
+.kb-term-screen::after {
+    background-image: radial-gradient(
+            ellipse 50% 18% at 50% 12%,
+            rgba(255, 255, 255, 0.06),
+            transparent
+        ),
+        radial-gradient(
+            ellipse 200% 20% at 50% 0%,
+            rgba(0, 0, 0, 0.55),
+            transparent
+        ),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.18) 50%, transparent 50%);
+    background-size: 100%, 100%, 100% 0.28em;
+}
+
+.kb-term-content {
+    position: absolute;
+    inset: 0;
+    padding: 12px 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kb-term-output {
+    flex: 1;
+    overflow: auto;
+    padding-right: 4px;
+    line-height: 1.35;
+    text-shadow: 0 0 1.2ex rgba(80, 255, 80, 0.55);
+    font-size: 13px;
+}
+.kb-term-line {
+    margin: 0 0 6px;
+}
+.kb-term-line::before {
+    content: "> ";
+    opacity: 0.9;
+}
+
+.kb-term-inputRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(120, 255, 120, 0.18);
+}
+.kb-term-prompt {
+    opacity: 0.9;
+}
+.kb-term-typed {
+    white-space: pre;
+}
+
+@keyframes kbBlink {
+    0%,
+    49% {
+        opacity: 0;
+    }
+    50%,
+    100% {
+        opacity: 1;
+    }
+}
+.kb-term-caret {
+    width: 7px;
+    height: 14px;
+    background: rgba(128, 255, 128, 0.85);
+    animation: kbBlink 500ms linear infinite;
+}
+
+/* input invisível só pra capturar foco/teclado */
+.kb-term-capture {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    opacity: 0;
+}

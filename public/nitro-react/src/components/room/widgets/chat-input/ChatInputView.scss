@@ -82,3 +82,23 @@
         }
     }
 }
+
+/* janela (NitroCard) do chat input */
+.nitro-chat-input-window {
+    width: 420px;
+    /* o posicionamento inicial (mais pra esquerda) é controlado pelo offsetLeft no TSX */
+}
+
+.nitro-chat-input-window .content-area {
+    overflow: visible !important;
+}
+
+/* no mobile, a regra default do chat input (posição absoluta) atrapalha dentro da janela */
+@include media-breakpoint-down(sm) {
+    .nitro-chat-input-window .nitro-chat-input-container {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 100% !important;
+    }
+}
