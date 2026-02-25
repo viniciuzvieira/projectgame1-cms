@@ -1,0 +1,56 @@
+:root {
+    --kb-cur-default: url("/assets/cursors/polar-blue/Arrow.cur") 0 0, auto;
+    --kb-cur-pointer: url("/assets/cursors/polar-blue/Hand.cur") 0 0, pointer;
+    --kb-cur-text: url("/assets/cursors/polar-blue/IBeam.cur") 0 0, text;
+    --kb-cur-wait: url("/assets/cursors/polar-blue/AppStarting.cur") 0 0,
+        progress;
+}
+
+/* padrão */
+html,
+body {
+    cursor: var(--kb-cur-default) !important;
+}
+
+/* Nitro canvas */
+canvas {
+    cursor: var(--kb-cur-default) !important;
+}
+
+/* clique (hand) */
+a,
+button,
+[role="button"],
+[role="link"],
+label,
+summary,
+.nitro-card-header-close,
+.nitro-card-header-close *,
+.nitro-card-tabs .nav-item,
+.icon,
+.cursor-pointer,
+.pointer,
+.cursor-pointer * {
+    cursor: var(--kb-cur-pointer) !important;
+}
+
+/* inputs (IBeam) */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.nitro-chat-input-container input,
+.nitro-chat-input-container textarea {
+    cursor: var(--kb-cur-text) !important;
+}
+
+/* loading/wait */
+[aria-busy="true"],
+.kb-wait,
+.is-loading,
+.loading,
+.spinner,
+.nitro-loading,
+.nitro-loader {
+    cursor: var(--kb-cur-wait) !important;
+}

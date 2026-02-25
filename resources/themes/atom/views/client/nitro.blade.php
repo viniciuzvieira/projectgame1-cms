@@ -8,6 +8,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/ui/terminal/kb-terminal-popup.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/cursors/polar-blue/cursors.css') }}">
 
     @vite(['resources/themes/atom/css/app.css', 'resources/themes/atom/js/app.js'])
 
@@ -213,5 +214,6 @@
   });
 </script>
 <script src="{{ asset('assets/ui/terminal/kb-chat-bridge.js') }}"></script>
+<script src="{{ asset('assets/cursors/polar-blue/kb-cursor-inject.js') }}"></script>
 </body>
 </html>

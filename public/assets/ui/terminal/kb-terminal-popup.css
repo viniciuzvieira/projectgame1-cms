@@ -8,7 +8,6 @@
 .kb-term-overlay.kb-open {
     display: block;
 }
-
 .kb-term-frame {
     position: fixed;
     left: 16px;
@@ -25,21 +24,17 @@
 .kb-term-frame.kb-dragging {
     cursor: grabbing;
 }
-
 .kb-term-frame img {
     width: 100%;
     height: 100%;
     display: block;
 }
-
-/* área da tela (ajuste fino se quiser) */
 .kb-term-frame {
     --screen-left: 19.53%;
-    --screen-top: 20.85%;
+    --screen-top: 22.9%;
     --screen-width: 60.36%;
-    --screen-height: 30.36%;
+    --screen-height: 36%;
 }
-
 .kb-term-screen {
     position: absolute;
     left: var(--screen-left);
@@ -53,9 +48,7 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         "Liberation Mono", monospace;
     color: rgba(128, 255, 128, 0.88);
-}
-
-/* scan/glare/scanlines */
+} /* scan/glare/scanlines */
 .kb-term-screen::before,
 .kb-term-screen::after {
     content: "";
@@ -98,7 +91,6 @@
         linear-gradient(0deg, rgba(0, 0, 0, 0.18) 50%, transparent 50%);
     background-size: 100%, 100%, 100% 0.28em;
 }
-
 .kb-term-content {
     position: absolute;
     inset: 0;
@@ -107,7 +99,6 @@
     flex-direction: column;
     gap: 8px;
 }
-
 .kb-term-output {
     flex: 1;
     overflow: auto;
@@ -123,7 +114,6 @@
     content: "> ";
     opacity: 0.9;
 }
-
 .kb-term-inputRow {
     display: flex;
     align-items: center;
@@ -138,7 +128,6 @@
 .kb-term-typed {
     white-space: pre;
 }
-
 @keyframes kbBlink {
     0%,
     49% {
@@ -154,9 +143,7 @@
     height: 14px;
     background: rgba(128, 255, 128, 0.85);
     animation: kbBlink 500ms linear infinite;
-}
-
-/* input invisível só pra capturar foco/teclado */
+} /* input invisível só pra capturar foco/teclado */
 .kb-term-capture {
     position: absolute;
     left: -9999px;
