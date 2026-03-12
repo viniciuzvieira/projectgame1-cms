@@ -8,6 +8,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/ui/terminal/kb-terminal-popup.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/ui/terminal/kb-terminal-chat.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/cursors/polar-blue/cursors.css') }}">
 
     @vite(['resources/themes/atom/css/app.css', 'resources/themes/atom/js/app.js'])
@@ -203,14 +204,30 @@
 
 <script src="{{ asset('assets/js/atom.js') }}"></script>
 <script src="{{ asset('assets/ui/terminal/kb-terminal-popup.js') }}"></script>
+<script src="{{ asset('assets/ui/terminal/kb-terminal-chat.js') }}"></script>
 <script>
   window.addEventListener('DOMContentLoaded', () => {
-    KBTerminalPopup.init({
-      triggerKey: 'KeyC',
-      iframeId: 'nitro',
-      imageUrl: "{{ asset('assets/ui/terminal/ping.png') }}",
-      closeOnEnter: true
-    });
+    const ENABLE_PING_TERMINAL = false;
+
+    if (ENABLE_PING_TERMINAL) {
+      KBTerminalPopup.init({
+        triggerKey: 'KeyC',
+        iframeId: 'nitro',
+        imageUrl: "{{ asset('assets/ui/terminal/ping.png') }}",
+        screen: {
+          left:  null,
+          top:   null,
+          width: null,
+          height:null,
+          rotate:null
+        }
+      });
+    } else {
+      KBTerminalChat.init({
+        triggerKey: 'KeyC',
+        iframeId: 'nitro'
+      });
+    }
   });
 </script>
 <script src="{{ asset('assets/ui/terminal/kb-chat-bridge.js') }}"></script>

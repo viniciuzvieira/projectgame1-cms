@@ -1,0 +1,145 @@
+@keyframes kbChatBlink {
+    0%,
+    49% {
+        opacity: 0;
+    }
+    50%,
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes kbChatScan {
+    0% {
+        background-position: 0 -120%;
+    }
+    35%,
+    100% {
+        background-position: 0 120%;
+    }
+}
+
+.kb-chat-term {
+    position: fixed;
+    left: 12px;
+    bottom: 86px;
+    width: 520px;
+    max-width: 46vw;
+    height: 230px;
+
+    border-radius: 12px;
+    background-color: #131;
+    background-image: radial-gradient(
+        ellipse 500% 100% at 50% 90%,
+        transparent,
+        #121
+    );
+    box-shadow: inset 0 0 10em 1em rgba(0, 0, 0, 0.5);
+
+    overflow: hidden;
+    z-index: 9999;
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+    color: rgba(128, 255, 128, 0.88);
+
+    display: none;
+    pointer-events: auto;
+}
+
+.kb-chat-term.kb-open {
+    display: block;
+}
+
+.kb-chat-term::before,
+.kb-chat-term::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.kb-chat-term::before {
+    background-image: linear-gradient(
+        0deg,
+        transparent 0%,
+        rgba(32, 128, 32, 0.15) 2%,
+        rgba(32, 128, 32, 0.55) 3%,
+        rgba(32, 128, 32, 0.15) 3%,
+        transparent 100%
+    );
+    background-repeat: no-repeat;
+    animation: kbChatScan 7.5s linear infinite;
+}
+
+.kb-chat-term::after {
+    background-image: radial-gradient(
+            ellipse 50% 18% at 50% 12%,
+            rgba(255, 255, 255, 0.06),
+            transparent
+        ),
+        radial-gradient(
+            ellipse 200% 20% at 50% 0%,
+            rgba(0, 0, 0, 0.55),
+            transparent
+        ),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.18) 50%, transparent 50%);
+    background-size: 100%, 100%, 100% 0.28em;
+}
+
+.kb-chat-term-content {
+    position: absolute;
+    inset: 0;
+    padding: 14px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.kb-chat-term-output {
+    flex: 1;
+    overflow: auto;
+    padding-right: 4px;
+    line-height: 1.35;
+    font-size: 13px;
+    text-shadow: 0 0 1.2ex rgba(80, 255, 80, 0.55);
+}
+
+.kb-chat-term-line {
+    margin: 0 0 6px;
+}
+
+.kb-chat-term-line::before {
+    content: "> ";
+    opacity: 0.9;
+}
+
+.kb-chat-term-inputRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(120, 255, 120, 0.18);
+}
+
+.kb-chat-term-prompt {
+    opacity: 0.9;
+}
+.kb-chat-term-typed {
+    white-space: pre;
+}
+
+.kb-chat-term-caret {
+    width: 7px;
+    height: 14px;
+    background: rgba(128, 255, 128, 0.85);
+    animation: kbChatBlink 500ms linear infinite;
+}
+
+.kb-chat-term-capture {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    opacity: 0;
+}
