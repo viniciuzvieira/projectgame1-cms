@@ -15,12 +15,24 @@
 
     @php
         $pickLatest = function ($files) {
-            if (!$files || count($files) === 0) return null;
-            usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            if (!is_array($files) || empty($files)) return null;
+
+            $files = array_values(array_filter($files, function ($file) {
+                return is_string($file) && $file !== '' && file_exists($file);
+            }));
+
+            if (empty($files)) return null;
+
+            usort($files, function ($a, $b) {
+                $timeA = @filemtime($a) ?: 0;
+                $timeB = @filemtime($b) ?: 0;
+                return $timeB <=> $timeA;
+            });
+
             return basename($files[0]);
         };
 
-        $ytCss = $pickLatest(glob(public_path('assets/yt-overlay/css/app*.css')));
+        $ytCss = $pickLatest(glob(public_path('assets/yt-overlay/css/app*.css')) ?: []);
 
         $ytVendors = $pickLatest(array_values(array_filter(
             glob(public_path('assets/yt-overlay/js/chunk-vendors*.js')) ?: [],
@@ -34,6 +46,12 @@
 
         $ytVendorsLegacy = $pickLatest(glob(public_path('assets/yt-overlay/js/chunk-vendors-legacy*.js')) ?: []);
         $ytAppLegacy = $pickLatest(glob(public_path('assets/yt-overlay/js/app-legacy*.js')) ?: []);
+
+        $nitroSrc = config('habbo.client.nitro_path') . '/index.html';
+
+        if (request()->filled('sso')) {
+            $nitroSrc .= '?sso=' . urlencode(request('sso'));
+        }
     @endphp
 
     @if($ytCss)
@@ -43,7 +61,7 @@
 
 <body class="overflow-hidden" id="nitro-client">
 <div class="absolute top-4 left-4 flex gap-x-2 z-30">
-    <a data-turbolinks="false" href="{{ route('me.show') }}">
+    <a data-turbolinks="false" href="{{ auth()->check() ? route('me.show') : route('welcome') }}">
         <x-client.client-button>
             <x-icons.home/>
         </x-client.client-button>
@@ -69,7 +87,7 @@
 
 <iframe
     id="nitro"
-    src="{{ sprintf('%s/index.html?sso=%s', config('habbo.client.nitro_path'), $sso) }}"
+    src="{{ $nitroSrc }}"
     class="border-none overflow-hidden h-full w-full m-0 p-0 absolute top-0 left-0"></iframe>
 
 <div id="app" class="absolute top-0 left-0 w-full h-full z-20"></div>
@@ -109,9 +127,15 @@
             fetch('{{ route('api.online-count') }}')
                 .then(r => r.json())
                 .then(r => {
-                    document.getElementById('online-count').innerHTML = r.data.onlineCount;
+                    const onlineCountElement = document.getElementById('online-count');
+
+                    if (onlineCountElement) {
+                        onlineCountElement.innerHTML = r.data.onlineCount;
+                    }
+
                     clearInterval(onlineCount);
-                });
+                })
+                .catch(() => {});
         }
 
         const fetchInitOnlineCount = setTimeout(() => {
@@ -180,14 +204,13 @@
                 username: window.__kbUsername,
                 debug: true,
                 repeatMs: 140,
-                keyMap: { 
-                    w: 'se',  // pra cima na tela
-                    d: 'ne',  // direita na tela
-                    s: 'nw',  // pra baixo na tela
-                    a: 'sw'   // esquerda na tela
+                keyMap: {
+                    w: 'se',
+                    d: 'ne',
+                    s: 'nw',
+                    a: 'sw'
                 }
             });
-
         } else {
             console.warn('[KB] keyboardwalk-controls.js not loaded');
         }
@@ -199,36 +222,36 @@
 </script>
 
 <script>
-  window.__kbUsername = window.__kbUsername || @json(optional(auth()->user())->username ?? null);
+    window.__kbUsername = window.__kbUsername || @json(optional(auth()->user())->username ?? null);
 </script>
 
 <script src="{{ asset('assets/js/atom.js') }}"></script>
 <script src="{{ asset('assets/ui/terminal/kb-terminal-popup.js') }}"></script>
 <script src="{{ asset('assets/ui/terminal/kb-terminal-chat.js') }}"></script>
 <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    const ENABLE_PING_TERMINAL = false;
+    window.addEventListener('DOMContentLoaded', () => {
+        const ENABLE_PING_TERMINAL = false;
 
-    if (ENABLE_PING_TERMINAL) {
-      KBTerminalPopup.init({
-        triggerKey: 'KeyC',
-        iframeId: 'nitro',
-        imageUrl: "{{ asset('assets/ui/terminal/ping.png') }}",
-        screen: {
-          left:  null,
-          top:   null,
-          width: null,
-          height:null,
-          rotate:null
+        if (ENABLE_PING_TERMINAL) {
+            KBTerminalPopup.init({
+                triggerKey: 'KeyC',
+                iframeId: 'nitro',
+                imageUrl: "{{ asset('assets/ui/terminal/ping.png') }}",
+                screen: {
+                    left: null,
+                    top: null,
+                    width: null,
+                    height: null,
+                    rotate: null
+                }
+            });
+        } else {
+            KBTerminalChat.init({
+                triggerKey: 'KeyC',
+                iframeId: 'nitro'
+            });
         }
-      });
-    } else {
-      KBTerminalChat.init({
-        triggerKey: 'KeyC',
-        iframeId: 'nitro'
-      });
-    }
-  });
+    });
 </script>
 <script src="{{ asset('assets/ui/terminal/kb-chat-bridge.js') }}"></script>
 <script src="{{ asset('assets/cursors/polar-blue/kb-cursor-inject.js') }}"></script>

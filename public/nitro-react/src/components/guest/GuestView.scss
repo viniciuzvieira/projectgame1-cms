@@ -1,0 +1,96 @@
+.nitro-card.guest-auth-card.theme-primary {
+    width: 560px;
+    min-width: 560px;
+    max-width: 560px;
+    min-height: 334px;
+    resize: none;
+    border: 1px solid #2e2e2e;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 10px 30px rgba(0, 0, 0, 0.45);
+
+    .nitro-card-header {
+        min-height: 34px;
+        max-height: 34px;
+        background: linear-gradient(180deg, #3a3a3a 0%, #171717 48%, #0d0d0d 52%, #262626 100%);
+        border-bottom: 1px solid #060606;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.18),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+            0 1px 0 rgba(255, 255, 255, 0.05);
+
+        .nitro-card-header-text {
+            color: #f4f4f4;
+            font-size: 24px;
+            text-shadow:
+                0 1px 0 rgba(0, 0, 0, 0.9),
+                0 0 2px rgba(255, 255, 255, 0.05);
+        }
+    }
+
+    .nitro-card-tabs {
+        background: #8a8a8a;
+        border-bottom: 1px solid #666;
+
+        .nav-item {
+            background: #c9c9c9;
+            color: #111;
+            font-size: 15px;
+            font-weight: 600;
+
+            &.active {
+                background: #e7e7e7;
+                border-color: #8f8f8f #8f8f8f #e7e7e7 !important;
+                border-bottom: 1px solid #e7e7e7;
+            }
+
+            &:before {
+                background: #f3f3f3;
+            }
+        }
+    }
+
+    .content-area {
+        background: #d9d9d9;
+        padding: 12px;
+    }
+}
+
+.guest-auth-form {
+    .guest-auth-copy {
+        display: block;
+        font-size: 14px;
+        color: #101010;
+        line-height: 1.35;
+    }
+
+    .form-label {
+        color: #111;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .form-control,
+    .form-select {
+        color: #000;
+        font-size: 15px;
+        background: #e9eef7;
+        border-color: #b7bfcb;
+    }
+
+    .form-control::placeholder {
+        color: #000;
+        opacity: 0.75;
+    }
+
+    input[type='password'] {
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 18px;
+        letter-spacing: 2px;
+    }
+
+    .btn {
+        font-size: 14px;
+    }
+}

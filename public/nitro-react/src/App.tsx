@@ -7,21 +7,22 @@ import { MainView } from './components/main/MainView';
 import { useConfigurationEvent, useLocalizationEvent, useMainEvent, useRoomEngineEvent } from './hooks';
 import IntervalWebWorker from './workers/IntervalWebWorker';
 import { WorkerBuilder } from './workers/WorkerBuilder';
+import { GuestView } from './components/guest/GuestView';
 
 NitroVersion.UI_VERSION = GetUIVersion();
 
-export const App: FC<{}> = props =>
-{
-    const [ isReady, setIsReady ] = useState(false);
-    const [ isError, setIsError ] = useState(false);
-    const [ message, setMessage ] = useState('Getting Ready');
-    const [ percent, setPercent ] = useState(0);
-    const [ imageRendering, setImageRendering ] = useState<boolean>(true);
+export const App: FC<{}> = props => {
+    const [isReady, setIsReady] = useState(false);
+    const [isError, setIsError] = useState(false);
+    const [message, setMessage] = useState('Getting Ready');
+    const [percent, setPercent] = useState(0);
+    const [imageRendering, setImageRendering] = useState<boolean>(true);
+    const sso = new URLSearchParams(window.location.search).get('sso');
+    const hasSso = !!(sso && sso.trim().length);
 
-    if(!GetNitroInstance())
-    {
+    if (!GetNitroInstance()) {
         //@ts-ignore
-        if(!NitroConfig) throw new Error('NitroConfig is not defined!');
+        if (!NitroConfig) throw new Error('NitroConfig is not defined!');
 
         Nitro.bootstrap();
 
@@ -30,10 +31,8 @@ export const App: FC<{}> = props =>
         Nitro.instance.setWorker(worker);
     }
 
-    const handler = useCallback((event: NitroEvent) =>
-    {
-        switch(event.type)
-        {
+    const handler = useCallback((event: NitroEvent) => {
+        switch (event.type) {
             case ConfigurationEvent.LOADED:
                 GetNitroInstance().localization.init();
                 setPercent(prevValue => (prevValue + 20));
@@ -64,15 +63,13 @@ export const App: FC<{}> = props =>
 
                 GetNitroInstance().init();
 
-                if(LegacyExternalInterface.available) LegacyExternalInterface.call('legacyTrack', 'authentication', 'authok', []);
+                if (LegacyExternalInterface.available) LegacyExternalInterface.call('legacyTrack', 'authentication', 'authok', []);
                 return;
             case NitroCommunicationDemoEvent.CONNECTION_ERROR:
                 setIsError(true);
                 setMessage('Connection Error');
                 return;
             case NitroCommunicationDemoEvent.CONNECTION_CLOSED:
-                //if(GetNitroInstance().roomEngine) GetNitroInstance().roomEngine.dispose();
-                //setIsError(true);
                 setMessage('Connection Error');
 
                 HabboWebTools.send(-1, 'client.init.handshake.fail');
@@ -86,18 +83,20 @@ export const App: FC<{}> = props =>
                 const assetUrls = GetConfiguration<string[]>('preload.assets.urls');
                 const urls: string[] = [];
 
-                if(assetUrls && assetUrls.length) for(const url of assetUrls) urls.push(GetNitroInstance().core.configuration.interpolate(url));
+                if (assetUrls && assetUrls.length) for (const url of assetUrls) urls.push(GetNitroInstance().core.configuration.interpolate(url));
 
-                GetNitroInstance().core.asset.downloadAssets(urls, (status: boolean) =>
-                {
-                    if(status)
-                    {
-                        GetCommunication().init();
-
-                        setPercent(prevValue => (prevValue + 20))
+                GetNitroInstance().core.asset.downloadAssets(urls, (status: boolean) => {
+                    if (status) {
+                        if (hasSso) {
+                            GetCommunication().init();
+                            setPercent(prevValue => (prevValue + 20));
+                        }
+                        else {
+                            setPercent(100);
+                            setIsReady(true);
+                        }
                     }
-                    else
-                    {
+                    else {
                         setIsError(true);
                         setMessage('Assets Failed');
                     }
@@ -105,7 +104,7 @@ export const App: FC<{}> = props =>
                 return;
             }
         }
-    }, []);
+    }, [hasSso]);
 
     useMainEvent(Nitro.WEBGL_UNAVAILABLE, handler);
     useMainEvent(Nitro.WEBGL_CONTEXT_LOST, handler);
@@ -119,36 +118,34 @@ export const App: FC<{}> = props =>
     useConfigurationEvent(ConfigurationEvent.LOADED, handler);
     useConfigurationEvent(ConfigurationEvent.FAILED, handler);
 
-    useEffect(() =>
-    {
-        if(!WebGL.isWebGLAvailable())
-        {
+    useEffect(() => {
+        if (!WebGL.isWebGLAvailable()) {
             DispatchUiEvent(new NitroEvent(Nitro.WEBGL_UNAVAILABLE));
         }
-        else
-        {
+        else {
             GetNitroInstance().core.configuration.init();
         }
-    
+
         const resize = (event: UIEvent) => setImageRendering(!(window.devicePixelRatio % 1));
 
         window.addEventListener('resize', resize);
 
-        resize(null);
+        resize(null as any);
 
-        return () =>
-        {
+        return () => {
             window.removeEventListener('resize', resize);
         }
     }, []);
-    
+
     return (
-        <Base fit overflow="hidden" className={ imageRendering && 'image-rendering-pixelated' }>
-            { (!isReady || isError) &&
-                <LoadingView isError={ isError } message={ message } percent={ percent } /> }
-            <TransitionAnimation type={ TransitionAnimationTypes.FADE_IN } inProp={ (isReady) }>
-                <MainView />
+        <Base fit overflow="hidden" className={imageRendering && 'image-rendering-pixelated'}>
+            {(!isReady || isError) &&
+                <LoadingView isError={isError} message={message} percent={percent} />}
+
+            <TransitionAnimation type={TransitionAnimationTypes.FADE_IN} inProp={isReady}>
+                {hasSso ? <MainView /> : <GuestView />}
             </TransitionAnimation>
+
             <Base id="draggable-windows-container" />
         </Base>
     );
