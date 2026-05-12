@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class NitroController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         return view('client.nitro', [
-            'sso' => Auth::user()->ssoTicket(),
+            'sso' => $request->filled('sso') ? $request->get('sso') : '',
         ]);
     }
 }

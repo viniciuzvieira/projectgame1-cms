@@ -6,19 +6,21 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BannedController;
 use App\Http\Controllers\FlashController;
+use App\Http\Controllers\GameAuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MeController;
-use App\Http\Controllers\PhotosController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NitroController;
 use App\Http\Controllers\PasswordSettingsController;
+use App\Http\Controllers\PhotosController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StaffApplicationsController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\SteamAuthController;
 use App\Http\Controllers\TwoFactorAuthenticationController;
 use App\Http\Controllers\WebsiteArticleCommentsController;
 use App\Http\Controllers\WebsiteTeamsController;
@@ -26,14 +28,11 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
-// Language route
 Route::get('/language/{locale}', LocaleController::class)->name('language.select');
 
 Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(function () {
-    // Maintenance route
     Route::get('/maintenance', MaintenanceController::class)->name('maintenance.show');
 
-    // Banned route
     Route::get('/banned', BannedController::class)->name('banned.show');
 
     Route::middleware('guest')->withoutMiddleware('force.staff.2fa')->group(function () {
@@ -43,16 +42,34 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
             User::where('referral_code', '=', $referral_code)->firstOrFail();
 
             return view('auth.register', [
-                'referral_code' =>  $referral_code,
+                'referral_code' => $referral_code,
             ]);
         })->name('register.referral');
     });
+
+    Route::post('/api/game/login', [GameAuthController::class, 'login'])
+        ->withoutMiddleware('force.staff.2fa')
+        ->name('api.game.login');
+
+    Route::get('/auth/steam/redirect', [SteamAuthController::class, 'redirect'])
+        ->withoutMiddleware('force.staff.2fa')
+        ->name('steam.redirect');
+
+    Route::get('/auth/steam/callback', [SteamAuthController::class, 'callback'])
+        ->withoutMiddleware('force.staff.2fa')
+        ->name('steam.callback');
+
+    Route::prefix('game')
+        ->middleware(['findretros.redirect', 'vpn.checker'])
+        ->withoutMiddleware('force.staff.2fa')
+        ->group(function () {
+            Route::get('/nitro', NitroController::class)->name('nitro-client');
+        });
 
     Route::middleware('auth')->group(function () {
         Route::prefix('user')->group(function () {
             Route::get('/me', [MeController::class, 'show'])->name('me.show');
 
-            // User settings routes
             Route::prefix('settings')->group(function () {
                 Route::get('/account', [AccountSettingsController::class, 'edit'])->name('settings.account.show');
                 Route::put('/account', [AccountSettingsController::class, 'update'])->name('settings.account.update');
@@ -64,10 +81,8 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
             });
         });
 
-        // Profiles
         Route::get('/profile/{user:username}', ProfileController::class)->name('profile.show');
 
-        // Community routes
         Route::prefix('community')->group(function () {
             Route::get('/', [MeController::class, 'index'])->name('community.index');
             Route::get('/claim/referral-reward', ReferralController::class)->name('claim.referral-reward');
@@ -92,21 +107,13 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
                 ->middleware('throttle:30,1');
         });
 
-        // Leaderboard routes
         Route::get('/leaderboard', LeaderboardController::class)->name('leaderboard.index');
 
-        // Rules routes
         Route::view('/rules', 'rules')->name('rules.index')->withoutMiddleware('auth');
 
-        // Shop routes
         Route::get('/shop', ShopController::class)->name('shop.index');
 
-        // Paypal routes
-
-
-        // Client route
         Route::prefix('game')->middleware(['findretros.redirect', 'vpn.checker'])->group(function () {
-            Route::get('/nitro', NitroController::class)->name('nitro-client');
             Route::get('/flash', FlashController::class)->name('flash-client');
         });
     });

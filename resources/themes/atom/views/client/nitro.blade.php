@@ -7,17 +7,32 @@
     <title>{{ setting('hotel_name') }} - Nitro</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('assets/ui/terminal/kb-terminal-popup.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/ui/terminal/kb-terminal-chat.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/cursors/polar-blue/cursors.css') }}">
 
     @vite(['resources/themes/atom/css/app.css', 'resources/themes/atom/js/app.js'])
 
     @php
         $pickLatest = function ($files) {
-            if (!$files || count($files) === 0) return null;
-            usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            if (!is_array($files) || empty($files)) return null;
+
+            $files = array_values(array_filter($files, function ($file) {
+                return is_string($file) && $file !== '' && file_exists($file);
+            }));
+
+            if (empty($files)) return null;
+
+            usort($files, function ($a, $b) {
+                $timeA = @filemtime($a) ?: 0;
+                $timeB = @filemtime($b) ?: 0;
+                return $timeB <=> $timeA;
+            });
+
             return basename($files[0]);
         };
 
-        $ytCss = $pickLatest(glob(public_path('assets/yt-overlay/css/app*.css')));
+        $ytCss = $pickLatest(glob(public_path('assets/yt-overlay/css/app*.css')) ?: []);
 
         $ytVendors = $pickLatest(array_values(array_filter(
             glob(public_path('assets/yt-overlay/js/chunk-vendors*.js')) ?: [],
@@ -31,6 +46,12 @@
 
         $ytVendorsLegacy = $pickLatest(glob(public_path('assets/yt-overlay/js/chunk-vendors-legacy*.js')) ?: []);
         $ytAppLegacy = $pickLatest(glob(public_path('assets/yt-overlay/js/app-legacy*.js')) ?: []);
+
+        $nitroSrc = config('habbo.client.nitro_path') . '/index.html';
+
+        if (request()->filled('sso')) {
+            $nitroSrc .= '?sso=' . urlencode(request('sso'));
+        }
     @endphp
 
     @if($ytCss)
@@ -40,7 +61,7 @@
 
 <body class="overflow-hidden" id="nitro-client">
 <div class="absolute top-4 left-4 flex gap-x-2 z-30">
-    <a data-turbolinks="false" href="{{ route('me.show') }}">
+    <a data-turbolinks="false" href="{{ auth()->check() ? route('me.show') : route('welcome') }}">
         <x-client.client-button>
             <x-icons.home/>
         </x-client.client-button>
@@ -66,7 +87,7 @@
 
 <iframe
     id="nitro"
-    src="{{ sprintf('%s/index.html?sso=%s', config('habbo.client.nitro_path'), $sso) }}"
+    src="{{ $nitroSrc }}"
     class="border-none overflow-hidden h-full w-full m-0 p-0 absolute top-0 left-0"></iframe>
 
 <div id="app" class="absolute top-0 left-0 w-full h-full z-20"></div>
@@ -106,9 +127,15 @@
             fetch('{{ route('api.online-count') }}')
                 .then(r => r.json())
                 .then(r => {
-                    document.getElementById('online-count').innerHTML = r.data.onlineCount;
+                    const onlineCountElement = document.getElementById('online-count');
+
+                    if (onlineCountElement) {
+                        onlineCountElement.innerHTML = r.data.onlineCount;
+                    }
+
                     clearInterval(onlineCount);
-                });
+                })
+                .catch(() => {});
         }
 
         const fetchInitOnlineCount = setTimeout(() => {
@@ -177,14 +204,13 @@
                 username: window.__kbUsername,
                 debug: true,
                 repeatMs: 140,
-                keyMap: { 
-                    w: 'se',  // pra cima na tela
-                    d: 'ne',  // direita na tela
-                    s: 'nw',  // pra baixo na tela
-                    a: 'sw'   // esquerda na tela
+                keyMap: {
+                    w: 'se',
+                    d: 'ne',
+                    s: 'nw',
+                    a: 'sw'
                 }
             });
-
         } else {
             console.warn('[KB] keyboardwalk-controls.js not loaded');
         }
@@ -196,139 +222,38 @@
 </script>
 
 <script>
-  window.__kbUsername = window.__kbUsername || @json(optional(auth()->user())->username ?? null);
-</script>
-<script>
-(() => {
-  const iframe = document.getElementById('nitro');
-  if (!iframe) return;
-
-  const STATE = { open: false };
-
-  function safeGetIframeCtx() {
-    try {
-      const win = iframe.contentWindow;
-      const doc = iframe.contentDocument;
-      if (!win || !doc) return null;
-      return { win, doc };
-    } catch (e) {
-      console.warn('[chat-toggle] Não consegui acessar o iframe (cross-origin?)', e);
-      return null;
-    }
-  }
-
-  function ensureStyle(doc) {
-    if (doc.getElementById('kb-chat-toggle-style')) return;
-
-    const style = doc.createElement('style');
-    style.id = 'kb-chat-toggle-style';
-    style.textContent = `
-      body.kb-chat-closed #toolbar-chat-input-container { display: none !important; }
-      body.kb-chat-open   #toolbar-chat-input-container { display: flex !important; }
-    `;
-    doc.head.appendChild(style);
-  }
-
-  function getChatContainer(doc) {
-    return doc.querySelector('#toolbar-chat-input-container');
-  }
-
-  function getChatInput(doc) {
-    return (
-      doc.querySelector('#toolbar-chat-input-container input.chat-input') ||
-      doc.querySelector('#toolbar-chat-input-container input') ||
-      doc.querySelector('input.chat-input')
-    );
-  }
-
-  function setOpen(doc, open) {
-    ensureStyle(doc);
-
-    doc.body.classList.toggle('kb-chat-open', open);
-    doc.body.classList.toggle('kb-chat-closed', !open);
-
-    if (open) {
-      const input = getChatInput(doc);
-      if (input) {
-        input.focus();
-        if (typeof input.select === 'function') input.select();
-      }
-      STATE.open = true;
-    } else {
-      const input = getChatInput(doc);
-      if (input) input.blur();
-      STATE.open = false;
-    }
-  }
-
-  function isTypingTarget(el) {
-    if (!el) return false;
-    const tag = (el.tagName || '').toLowerCase();
-    return tag === 'input' || tag === 'textarea' || el.isContentEditable === true;
-  }
-
-  function isInsideChat(el, doc) {
-    const container = getChatContainer(doc);
-    return !!(container && el && container.contains(el));
-  }
-
-  function setup() {
-    const ctx = safeGetIframeCtx();
-    if (!ctx) return;
-
-    const { win, doc } = ctx;
-
-    // default: fechado
-    ensureStyle(doc);
-    setOpen(doc, false);
-
-    // Se o Nitro re-renderizar e perder classe/DOM, reaplica o estado
-    const mo = new MutationObserver(() => {
-      if (STATE.open) {
-        doc.body.classList.add('kb-chat-open');
-        doc.body.classList.remove('kb-chat-closed');
-      } else {
-        doc.body.classList.add('kb-chat-closed');
-        doc.body.classList.remove('kb-chat-open');
-      }
-    });
-    mo.observe(doc.documentElement, { childList: true, subtree: true });
-
-    // Abre no "C"
-    win.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-
-      // Se estiver digitando em outro input, não intercepta
-      if (isTypingTarget(e.target) && !isInsideChat(e.target, doc)) return;
-
-      if (e.code === 'KeyC') {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!STATE.open) setOpen(doc, true);
-      }
-    }, true);
-
-    // Fecha no Enter (somente se o foco estiver no chat)
-    win.addEventListener('keydown', (e) => {
-      if (!STATE.open) return;
-      if (e.key !== 'Enter') return;
-
-      const active = doc.activeElement;
-      if (!isInsideChat(active, doc)) return;
-
-      // deixa o Nitro enviar/processar o Enter e fecha logo depois
-      setTimeout(() => setOpen(doc, false), 120);
-    }, true);
-  }
-
-  iframe.addEventListener('load', setup);
-
-  // fallback (caso o iframe já esteja carregado quando esse script rodar)
-  setTimeout(setup, 1500);
-})();
+    window.__kbUsername = window.__kbUsername || @json(optional(auth()->user())->username ?? null);
 </script>
 
 <script src="{{ asset('assets/js/atom.js') }}"></script>
-<script src="{{ asset('js/keyboardwalk-controls.js') }}"></script>
+<script src="{{ asset('assets/ui/terminal/kb-terminal-popup.js') }}"></script>
+<script src="{{ asset('assets/ui/terminal/kb-terminal-chat.js') }}"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const ENABLE_PING_TERMINAL = false;
+
+        if (ENABLE_PING_TERMINAL) {
+            KBTerminalPopup.init({
+                triggerKey: 'KeyC',
+                iframeId: 'nitro',
+                imageUrl: "{{ asset('assets/ui/terminal/ping.png') }}",
+                screen: {
+                    left: null,
+                    top: null,
+                    width: null,
+                    height: null,
+                    rotate: null
+                }
+            });
+        } else {
+            KBTerminalChat.init({
+                triggerKey: 'KeyC',
+                iframeId: 'nitro'
+            });
+        }
+    });
+</script>
+<script src="{{ asset('assets/ui/terminal/kb-chat-bridge.js') }}"></script>
+<script src="{{ asset('assets/cursors/polar-blue/kb-cursor-inject.js') }}"></script>
 </body>
 </html>
