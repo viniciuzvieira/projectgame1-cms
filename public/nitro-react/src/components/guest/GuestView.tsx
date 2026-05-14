@@ -1,81 +1,133 @@
-import { FC, useCallback, useState } from 'react';
-import { Base, NitroCardContentView, NitroCardHeaderView, NitroCardTabsItemView, NitroCardTabsView, NitroCardView } from '../../common';
-import { GameLogin } from './GameLogin';
-import { LoginView } from './LoginView';
-import { RegisterView } from './RegisterView';
-import './GuestView.scss';
+import { FC, useCallback, useMemo, useState } from "react";
+import {
+    Base,
+    NitroCardContentView,
+    NitroCardHeaderView,
+    NitroCardTabsItemView,
+    NitroCardTabsView,
+    NitroCardView,
+} from "../../common";
+import { GameLogin } from "./GameLogin";
+import { LoginView } from "./LoginView";
+import { RegisterCharacterView } from "./RegisterCharacterView";
+import "./GuestView.scss";
 
-type GuestTab = 'login' | 'register';
+export const GuestView: FC<{}> = () => {
+    const [loginStatusMessage, setLoginStatusMessage] = useState("");
+    const [registerStatusMessage, setRegisterStatusMessage] = useState("");
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
-export const GuestView: FC<{}> = props => {
-    const [activeTab, setActiveTab] = useState<GuestTab>('login');
-    const [statusMessage, setStatusMessage] = useState('');
+    const uniqueKey = useMemo(() => {
+        return isRegisterOpen
+            ? "guest-auth-register-v3"
+            : "guest-auth-login-v3";
+    }, [isRegisterOpen]);
 
-    const onLogin = useCallback(async (usernameOrEmail: string, password: string) => {
-        setStatusMessage('');
+    const onOpenRegister = useCallback(() => {
+        setRegisterStatusMessage("");
+        setIsRegisterOpen(true);
+    }, []);
 
-        if (!usernameOrEmail || !password) {
-            setStatusMessage('Preencha usuário e senha.');
-            return;
-        }
+    const onCloseRegister = useCallback(() => {
+        setIsRegisterOpen(false);
+        setRegisterStatusMessage("");
+    }, []);
 
-        try {
-            const response = await GameLogin(usernameOrEmail, password);
+    const onLogin = useCallback(
+        async (usernameOrEmail: string, password: string) => {
+            setLoginStatusMessage("");
 
-            if (!response.success || !response.sso) {
-                setStatusMessage(response.message || 'Não foi possível entrar.');
+            if (!usernameOrEmail || !password) {
+                setLoginStatusMessage("Preencha usuário e senha.");
                 return;
             }
 
-            window.location.href = '/game/nitro?sso=' + encodeURIComponent(response.sso);
-        }
-        catch {
-            setStatusMessage('Erro ao tentar entrar no hotel.');
-        }
-    }, []);
+            try {
+                const response = await GameLogin(usernameOrEmail, password);
 
-    const onRegisterPlaceholder = useCallback((data: {
-        username: string;
-        email: string;
-        password: string;
-        passwordConfirm: string;
-        gender: string;
-        race: string;
-        className: string;
-    }) => {
-        setStatusMessage('Cadastro será ligado na próxima fase.');
-    }, []);
+                if (!response.success || !response.sso) {
+                    setLoginStatusMessage(
+                        response.message || "Não foi possível entrar.",
+                    );
+                    return;
+                }
+
+                window.location.href = `/game/nitro?sso=${encodeURIComponent(response.sso)}`;
+            } catch {
+                setLoginStatusMessage("Erro ao tentar entrar no hotel.");
+            }
+        },
+        [],
+    );
+
+    const onRegisterPlaceholder = useCallback(
+        (data: {
+            username: string;
+            email: string;
+            password: string;
+            passwordConfirm: string;
+            gender: string;
+            race: string;
+            className: string;
+            look: string;
+        }) => {
+            setRegisterStatusMessage("Cadastro será ligado na próxima fase.");
+        },
+        [],
+    );
 
     const onSteam = useCallback(() => {
-        window.location.href = '/auth/steam/redirect';
+        window.location.href = "/auth/steam/redirect";
     }, []);
 
     return (
-        <Base fit className="position-relative">
-            <NitroCardView uniqueKey="guest-auth" className="guest-auth-card">
-                <NitroCardHeaderView headerText={activeTab === 'login' ? 'Entrar no Hotel' : 'Criar Conta'} onCloseClick={() => null} />
+        <Base
+            fit
+            className={`position-relative guest-auth-root ${isRegisterOpen ? "register-mode" : "login-mode"}`}
+        >
+            <NitroCardView
+                uniqueKey={uniqueKey}
+                className={`guest-auth-card ${isRegisterOpen ? "guest-auth-card-expanded" : ""}`}
+            >
+                <NitroCardHeaderView
+                    headerText={
+                        isRegisterOpen ? "Criar Conta" : "Entrar no Hotel"
+                    }
+                    onCloseClick={isRegisterOpen ? onCloseRegister : () => null}
+                />
                 <NitroCardTabsView>
-                    <NitroCardTabsItemView isActive={activeTab === 'login'} onClick={() => setActiveTab('login')}>
+                    <NitroCardTabsItemView
+                        isActive={!isRegisterOpen}
+                        onClick={onCloseRegister}
+                    >
                         Entrar
                     </NitroCardTabsItemView>
-                    <NitroCardTabsItemView isActive={activeTab === 'register'} onClick={() => setActiveTab('register')}>
+                    <NitroCardTabsItemView
+                        isActive={isRegisterOpen}
+                        onClick={onOpenRegister}
+                    >
                         Cadastrar
                     </NitroCardTabsItemView>
                 </NitroCardTabsView>
-                <NitroCardContentView>
-                    {activeTab === 'login' &&
+                <NitroCardContentView className="guest-auth-content">
+                    {!isRegisterOpen && (
                         <LoginView
-                            statusMessage={statusMessage}
+                            statusMessage={loginStatusMessage}
                             onLogin={onLogin}
                             onSteam={onSteam}
-                            onGoRegister={() => setActiveTab('register')} />}
-                    {activeTab === 'register' &&
-                        <RegisterView
-                            statusMessage={statusMessage}
+                            onGoRegister={onOpenRegister}
+                        />
+                    )}
+
+                    {isRegisterOpen && (
+                        <RegisterCharacterView
+                            statusMessage={registerStatusMessage}
                             onRegister={onRegisterPlaceholder}
-                            onGoLogin={() => setActiveTab('login')} />}
+                            onGoLogin={onCloseRegister}
+                        />
+                    )}
                 </NitroCardContentView>
             </NitroCardView>
         </Base>
     );
-}
+};
