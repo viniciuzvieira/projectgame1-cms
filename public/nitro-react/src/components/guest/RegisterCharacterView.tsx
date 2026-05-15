@@ -1,4 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { AvatarScaleType, AvatarSetType } from "@nitrots/nitro-renderer";
 import {
     AvatarEditorGridColorItem,
     AvatarEditorGridPartItem,
@@ -98,6 +99,23 @@ const SET_ICON: Record<string, string> = {
     [FigureData.TROUSERS]: "lg",
     [FigureData.SHOES]: "sh",
     [FigureData.TROUSER_ACCESSORIES]: "wa",
+};
+
+const CLASS_SKILL_SYMBOLS: Record<string, string> = {
+    Minerador: "MN",
+    Hacker: "HK",
+    Quimico: "QM",
+    Mecanico: "MC",
+    Medico: "MD",
+    Programador: "PG",
+};
+
+const RACE_SKILL_SYMBOLS: Record<string, string> = {
+    Android: "AN",
+    Ciclope: "CI",
+    Bionic: "BI",
+    Basalts: "BA",
+    Hammer: "HM",
 };
 
 const isSetGenderAllowed = (setGender: string, selectedGender: string): boolean => {
@@ -303,9 +321,44 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                 partItem.isSelected = Number(partSet.id) === selectedPartSetId;
                 partItem.init();
 
+                if (activePartSetType === FigureData.FACE && figureData) {
+                    const resetFigure = (_figure: string) => {
+                        const figureString = figureData.getFigureStringWithFace(
+                            Number(partSet.id),
+                        );
+                        const avatarImage = avatarRenderManager.createAvatarImage(
+                            figureString,
+                            AvatarScaleType.LARGE,
+                            null,
+                            { resetFigure, dispose: null, disposed: false } as any,
+                        );
+
+                        if (!avatarImage) {
+                            return;
+                        }
+
+                        const sprite = avatarImage.getImageAsSprite(AvatarSetType.HEAD);
+
+                        if (sprite) {
+                            sprite.y = 10;
+                            partItem.thumbContainer = sprite;
+                        }
+
+                        setTimeout(() => avatarImage.dispose(), 0);
+                    };
+
+                    resetFigure("");
+                }
+
                 return partItem;
             });
-    }, [figureData, activePartSetType, gender, isAvatarStructureReady]);
+    }, [
+        avatarRenderManager,
+        figureData,
+        activePartSetType,
+        gender,
+        isAvatarStructureReady,
+    ]);
 
     useEffect(() => {
         return () => {
@@ -368,12 +421,6 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
         return <Text className="guest-auth-copy">{statusMessage}</Text>;
     }, [statusMessage]);
-
-    const customizerDescription = useMemo(() => {
-        const setLabel = SET_LABEL[activePartSetType] || "Item";
-
-        return `Selecione ${setLabel.toLowerCase()} para montar o visual.`;
-    }, [activePartSetType]);
 
     const handleSelectPart = useCallback(
         (partItem: AvatarEditorGridPartItem) => {
@@ -464,21 +511,9 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
     return (
         <Column gap={3} className="guest-auth-register-character">
-            <Text className="guest-auth-copy">
-                Crie sua conta para entrar no hotel.
-            </Text>
-
             <div className="guest-auth-register-character-layout">
                 <div className="guest-auth-register-character-left">
                     <div className="guest-auth-register-character-left-fallback">
-                        <div className="guest-auth-register-character-info-title">
-                            Customizacao visual
-                        </div>
-
-                        <Text className="guest-auth-copy">
-                            {customizerDescription}
-                        </Text>
-
                         <div className="guest-auth-customizer-tabs">
                             <button
                                 type="button"
@@ -598,17 +633,90 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                         </div>
                     </div>
 
-                    <div className="guest-auth-register-character-info-panel">
-                        <div className="guest-auth-register-character-info-box">
-                            <div className="guest-auth-register-character-info-title">
-                                Race Description
-                            </div>
-                            <Text className="guest-auth-copy">
-                                {raceDescriptions[race]}
-                            </Text>
+                    <div className="guest-auth-race-choice-panel">
+                        <div className="guest-auth-race-choice-buttons">
+                            {raceOptions.map((option) => (
+                                <button
+                                    key={`race-btn-${option}`}
+                                    type="button"
+                                    className={`guest-auth-race-choice-btn ${race === option ? "is-active" : ""}`}
+                                    title={option}
+                                    aria-label={option}
+                                    onClick={() => setRace(option)}
+                                >
+                                    {RACE_SKILL_SYMBOLS[option] || "RC"}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="guest-auth-register-character-info-box guest-auth-race-info-box">
+                        <div className="guest-auth-register-character-info-title">
+                            Race Description
+                        </div>
+                        <Text className="guest-auth-copy">
+                            {raceDescriptions[race]}
+                        </Text>
+                    </div>
+                </div>
+
+                <div className="guest-auth-register-character-right">
+                    <div className="guest-auth-register-character-right-panel">
+                        <div className="guest-auth-register-character-info-title">
+                            Class & Skills
                         </div>
 
-                        <div className="guest-auth-register-character-info-box">
+                        <div className="guest-auth-skills-map">
+                            <svg
+                                viewBox="0 0 360 188"
+                                className="guest-auth-skills-map-svg"
+                                aria-hidden="true"
+                            >
+                                <line x1="42" y1="32" x2="130" y2="32" />
+                                <line x1="130" y1="32" x2="238" y2="32" />
+                                <line x1="42" y1="32" x2="42" y2="96" />
+                                <line x1="42" y1="96" x2="118" y2="96" />
+                                <line x1="118" y1="96" x2="162" y2="136" />
+                                <line x1="118" y1="96" x2="146" y2="74" />
+                                <line x1="130" y1="32" x2="146" y2="74" />
+                                <line x1="146" y1="74" x2="186" y2="74" />
+                                <line x1="186" y1="74" x2="300" y2="74" />
+                                <line x1="186" y1="74" x2="250" y2="138" />
+                                <line x1="238" y1="32" x2="238" y2="138" />
+                                <line x1="42" y1="138" x2="162" y2="136" />
+                                <line x1="130" y1="32" x2="130" y2="136" />
+
+                                <rect x="26" y="18" width="32" height="24" />
+                                <rect x="114" y="18" width="32" height="24" />
+                                <rect x="222" y="18" width="32" height="24" />
+                                <rect x="26" y="86" width="32" height="22" />
+                                <rect x="20" y="126" width="42" height="28" />
+                                <rect x="144" y="126" width="42" height="28" />
+                                <rect x="130" y="64" width="18" height="18" />
+                                <rect x="170" y="60" width="34" height="28" />
+                                <rect x="286" y="60" width="42" height="28" />
+                                <rect x="224" y="126" width="44" height="30" />
+                            </svg>
+                        </div>
+
+                        <div className="guest-auth-class-choice-panel">
+                            <div className="guest-auth-class-skill-buttons">
+                                {classOptions.map((option) => (
+                                    <button
+                                        key={`class-btn-${option}`}
+                                        type="button"
+                                        className={`guest-auth-class-skill-btn ${className === option ? "is-active" : ""}`}
+                                        title={option}
+                                        aria-label={option}
+                                        onClick={() => setClassName(option)}
+                                    >
+                                        {CLASS_SKILL_SYMBOLS[option] || "CL"}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="guest-auth-register-character-info-box guest-auth-class-info-box">
                             <div className="guest-auth-register-character-info-title">
                                 Class Info
                             </div>
@@ -618,105 +726,64 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="guest-auth-register-character-right">
-                    <div className="guest-auth-register-character-fields">
-                        <FormGroup column>
-                            <label className="form-label">Usuario</label>
-                            <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                value={username}
-                                onChange={(event) =>
-                                    setUsername(event.target.value)
-                                }
-                            />
-                        </FormGroup>
+            <div className="guest-auth-register-form-panel">
+                <div className="guest-auth-register-character-fields guest-auth-register-character-fields-bottom">
+                    <FormGroup column>
+                        <label className="form-label">Usuario</label>
+                        <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            value={username}
+                            onChange={(event) =>
+                                setUsername(event.target.value)
+                            }
+                        />
+                    </FormGroup>
 
-                        <FormGroup column>
-                            <label className="form-label">E-mail</label>
-                            <input
-                                type="email"
-                                className="form-control form-control-sm"
-                                value={email}
-                                onChange={(event) =>
-                                    setEmail(event.target.value)
-                                }
-                            />
-                        </FormGroup>
+                    <FormGroup column>
+                        <label className="form-label">E-mail</label>
+                        <input
+                            type="email"
+                            className="form-control form-control-sm"
+                            value={email}
+                            onChange={(event) =>
+                                setEmail(event.target.value)
+                            }
+                        />
+                    </FormGroup>
 
-                        <FormGroup column>
-                            <label className="form-label">Senha</label>
-                            <input
-                                type="password"
-                                className="form-control form-control-sm"
-                                value={password}
-                                onChange={(event) =>
-                                    setPassword(event.target.value)
-                                }
-                            />
-                        </FormGroup>
+                    <FormGroup column>
+                        <label className="form-label">Sexo</label>
+                        <select
+                            className="form-select form-select-sm"
+                            value={gender}
+                            onChange={(event) =>
+                                setGender(event.target.value)
+                            }
+                        >
+                            <option value={FigureData.MALE}>Masculino</option>
+                            <option value={FigureData.FEMALE}>Feminino</option>
+                        </select>
+                    </FormGroup>
 
-                        <FormGroup column>
-                            <label className="form-label">Confirmar senha</label>
-                            <input
-                                type="password"
-                                className="form-control form-control-sm"
-                                value={passwordConfirm}
-                                onChange={(event) =>
-                                    setPasswordConfirm(event.target.value)
-                                }
-                            />
-                        </FormGroup>
-
-                        <FormGroup column>
-                            <label className="form-label">Sexo</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={gender}
-                                onChange={(event) =>
-                                    setGender(event.target.value)
-                                }
-                            >
-                                <option value={FigureData.MALE}>Masculino</option>
-                                <option value={FigureData.FEMALE}>Feminino</option>
-                            </select>
-                        </FormGroup>
-
-                        <FormGroup column>
-                            <label className="form-label">Raca</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={race}
-                                onChange={(event) =>
-                                    setRace(event.target.value)
-                                }
-                            >
-                                {raceOptions.map((raceOption) => (
-                                    <option key={raceOption} value={raceOption}>
-                                        {raceOption}
-                                    </option>
-                                ))}
-                            </select>
-                        </FormGroup>
-
-                        <FormGroup column>
-                            <label className="form-label">Classe</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={className}
-                                onChange={(event) =>
-                                    setClassName(event.target.value)
-                                }
-                            >
-                                {classOptions.map((classOption) => (
-                                    <option key={classOption} value={classOption}>
-                                        {classOption}
-                                    </option>
-                                ))}
-                            </select>
-                        </FormGroup>
-                    </div>
+                    <FormGroup column>
+                        <label className="form-label">Raca</label>
+                        <select
+                            className="form-select form-select-sm"
+                            value={race}
+                            onChange={(event) =>
+                                setRace(event.target.value)
+                            }
+                        >
+                            {raceOptions.map((raceOption) => (
+                                <option key={raceOption} value={raceOption}>
+                                    {raceOption}
+                                </option>
+                            ))}
+                        </select>
+                    </FormGroup>
                 </div>
             </div>
 
