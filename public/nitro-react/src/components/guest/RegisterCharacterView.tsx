@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
-import { AvatarScaleType, AvatarSetType } from "@nitrots/nitro-renderer";
+import { AvatarRenderEvent, AvatarScaleType, AvatarSetType } from "@nitrots/nitro-renderer";
 import {
     AvatarEditorGridColorItem,
     AvatarEditorGridPartItem,
@@ -8,7 +8,6 @@ import {
     GetAvatarRenderManager,
     GetAvatarSetType,
 } from "../../api";
-import { generateRandomFigure } from "../../api/avatar/FigureGenerator";
 import { Button, Column, Flex, FormGroup, Text } from "../../common";
 import { AvatarEditorIcon } from "../avatar-editor/views/AvatarEditorIcon";
 import { AvatarEditorFigurePreviewView } from "../avatar-editor/views/AvatarEditorFigurePreviewView";
@@ -159,6 +158,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
     const [activePartSetType, setActivePartSetType] = useState<string>(
         FigureData.FACE,
     );
+    const [avatarStructureVersion, setAvatarStructureVersion] = useState(0);
     const avatarRenderManager = GetAvatarRenderManager();
     const isAvatarStructureReady = !!(
         avatarRenderManager && avatarRenderManager.structureData
@@ -195,6 +195,49 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         }
     }, []);
 
+    useEffect(() => {
+        if (!avatarRenderManager) {
+            return;
+        }
+
+        let disposed = false;
+        const bumpStructureVersion = () => {
+            if (disposed) {
+                return;
+            }
+
+            setAvatarStructureVersion((prev) => prev + 1);
+        };
+
+        const onAvatarRenderReady = () => bumpStructureVersion();
+
+        avatarRenderManager.events.addEventListener(
+            AvatarRenderEvent.AVATAR_RENDER_READY,
+            onAvatarRenderReady,
+        );
+
+        if (!avatarRenderManager.isLoaded && !avatarRenderManager.isLoading) {
+            avatarRenderManager.init();
+        }
+
+        bumpStructureVersion();
+
+        const warmupTimeout = window.setTimeout(() => {
+            if (!disposed) {
+                bumpStructureVersion();
+            }
+        }, 200);
+
+        return () => {
+            disposed = true;
+            window.clearTimeout(warmupTimeout);
+            avatarRenderManager.events.removeEventListener(
+                AvatarRenderEvent.AVATAR_RENDER_READY,
+                onAvatarRenderReady,
+            );
+        };
+    }, [avatarRenderManager]);
+
     const buildFigureData = useCallback((nextGender: string): FigureData => {
         const normalizedGender =
             nextGender === FigureData.FEMALE
@@ -205,30 +248,11 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                 ? DEFAULT_FEMALE_FIGURE
                 : DEFAULT_MALE_FIGURE;
 
-        const seedFigure = new FigureData();
-        seedFigure.loadAvatarData(fallbackFigure, normalizedGender);
-
-        let initialFigure = fallbackFigure;
-
-        if (isAvatarStructureReady) {
-            try {
-                initialFigure = generateRandomFigure(
-                    seedFigure,
-                    normalizedGender,
-                    0,
-                    [],
-                    [],
-                );
-            } catch {
-                initialFigure = fallbackFigure;
-            }
-        }
-
         const figure = new FigureData();
-        figure.loadAvatarData(initialFigure, normalizedGender);
+        figure.loadAvatarData(fallbackFigure, normalizedGender);
 
         return figure;
-    }, [isAvatarStructureReady]);
+    }, []);
 
     useEffect(() => {
         setFigureData(buildFigureData(gender));
@@ -249,7 +273,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
             return !!(setTypeData && setTypeData.partSets);
         });
-    }, [activeSetTypes, isAvatarStructureReady]);
+    }, [activeSetTypes, isAvatarStructureReady, avatarStructureVersion]);
 
     useEffect(() => {
         if (!availableSetTypes.length) {
@@ -358,6 +382,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         activePartSetType,
         gender,
         isAvatarStructureReady,
+        avatarStructureVersion,
     ]);
 
     useEffect(() => {
@@ -397,7 +422,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
                 return colorItem;
             });
-    }, [figureData, activePartSetType, isAvatarStructureReady]);
+    }, [figureData, activePartSetType, isAvatarStructureReady, avatarStructureVersion]);
 
     useEffect(() => {
         return () => {
