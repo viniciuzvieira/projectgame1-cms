@@ -662,41 +662,43 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
                 <div className="guest-auth-register-character-right">
                     <div className="guest-auth-register-character-right-panel">
-                        <div className="guest-auth-register-character-info-title">
-                            Class & Skills
-                        </div>
+                        <div className="guest-auth-register-character-preview-card guest-auth-register-character-skills-card">
+                            <div className="guest-auth-register-character-info-title">
+                                Class & Skills
+                            </div>
 
-                        <div className="guest-auth-skills-map">
-                            <svg
-                                viewBox="0 0 360 188"
-                                className="guest-auth-skills-map-svg"
-                                aria-hidden="true"
-                            >
-                                <line x1="42" y1="32" x2="130" y2="32" />
-                                <line x1="130" y1="32" x2="238" y2="32" />
-                                <line x1="42" y1="32" x2="42" y2="96" />
-                                <line x1="42" y1="96" x2="118" y2="96" />
-                                <line x1="118" y1="96" x2="162" y2="136" />
-                                <line x1="118" y1="96" x2="146" y2="74" />
-                                <line x1="130" y1="32" x2="146" y2="74" />
-                                <line x1="146" y1="74" x2="186" y2="74" />
-                                <line x1="186" y1="74" x2="300" y2="74" />
-                                <line x1="186" y1="74" x2="250" y2="138" />
-                                <line x1="238" y1="32" x2="238" y2="138" />
-                                <line x1="42" y1="138" x2="162" y2="136" />
-                                <line x1="130" y1="32" x2="130" y2="136" />
+                            <div className="guest-auth-skills-map">
+                                <svg
+                                    viewBox="0 0 360 188"
+                                    className="guest-auth-skills-map-svg"
+                                    aria-hidden="true"
+                                >
+                                    <line x1="42" y1="32" x2="130" y2="32" />
+                                    <line x1="130" y1="32" x2="238" y2="32" />
+                                    <line x1="42" y1="32" x2="42" y2="96" />
+                                    <line x1="42" y1="96" x2="118" y2="96" />
+                                    <line x1="118" y1="96" x2="162" y2="136" />
+                                    <line x1="118" y1="96" x2="146" y2="74" />
+                                    <line x1="130" y1="32" x2="146" y2="74" />
+                                    <line x1="146" y1="74" x2="186" y2="74" />
+                                    <line x1="186" y1="74" x2="300" y2="74" />
+                                    <line x1="186" y1="74" x2="250" y2="138" />
+                                    <line x1="238" y1="32" x2="238" y2="138" />
+                                    <line x1="42" y1="138" x2="162" y2="136" />
+                                    <line x1="130" y1="32" x2="130" y2="136" />
 
-                                <rect x="26" y="18" width="32" height="24" />
-                                <rect x="114" y="18" width="32" height="24" />
-                                <rect x="222" y="18" width="32" height="24" />
-                                <rect x="26" y="86" width="32" height="22" />
-                                <rect x="20" y="126" width="42" height="28" />
-                                <rect x="144" y="126" width="42" height="28" />
-                                <rect x="130" y="64" width="18" height="18" />
-                                <rect x="170" y="60" width="34" height="28" />
-                                <rect x="286" y="60" width="42" height="28" />
-                                <rect x="224" y="126" width="44" height="30" />
-                            </svg>
+                                    <rect x="26" y="18" width="32" height="24" />
+                                    <rect x="114" y="18" width="32" height="24" />
+                                    <rect x="222" y="18" width="32" height="24" />
+                                    <rect x="26" y="86" width="32" height="22" />
+                                    <rect x="20" y="126" width="42" height="28" />
+                                    <rect x="144" y="126" width="42" height="28" />
+                                    <rect x="130" y="64" width="18" height="18" />
+                                    <rect x="170" y="60" width="34" height="28" />
+                                    <rect x="286" y="60" width="42" height="28" />
+                                    <rect x="224" y="126" width="44" height="30" />
+                                </svg>
+                            </div>
                         </div>
 
                         <div className="guest-auth-class-choice-panel">
