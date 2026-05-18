@@ -1,6 +1,7 @@
 import { FC, useCallback, useMemo, useState } from "react";
 import {
     Base,
+    DraggableWindowPosition,
     NitroCardContentView,
     NitroCardHeaderView,
     NitroCardTabsItemView,
@@ -19,7 +20,7 @@ export const GuestView: FC<{}> = () => {
 
     const uniqueKey = useMemo(() => {
         return isRegisterOpen
-            ? "guest-auth-register-v3"
+            ? "guest-auth-register-v5"
             : "guest-auth-login-v3";
     }, [isRegisterOpen]);
 
@@ -88,6 +89,8 @@ export const GuestView: FC<{}> = () => {
             <NitroCardView
                 uniqueKey={uniqueKey}
                 className={`guest-auth-card ${isRegisterOpen ? "guest-auth-card-expanded" : ""}`}
+                windowPosition={DraggableWindowPosition.TOP_CENTER}
+                offsetTop={34}
             >
                 <NitroCardHeaderView
                     headerText={

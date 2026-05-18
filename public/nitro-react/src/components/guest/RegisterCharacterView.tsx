@@ -109,13 +109,18 @@ const CLASS_SKILL_SYMBOLS: Record<string, string> = {
     Programador: "PG",
 };
 
-const RACE_SKILL_SYMBOLS: Record<string, string> = {
-    Android: "AN",
-    Ciclope: "CI",
-    Bionic: "BI",
-    Basalts: "BA",
-    Hammer: "HM",
-};
+const RACE_OPTIONS = ["Android", "Ciclope", "Bionic", "Basalts", "Hammer"];
+const CLASS_OPTIONS = [
+    "Minerador",
+    "Hacker",
+    "Quimico",
+    "Mecanico",
+    "Medico",
+    "Programador",
+];
+const RACE_ICON_PICK_INDICES = [0, 2, 4, 8, 12];
+const RACE_HEAD_DEBUG = true;
+const RACE_HEAD_LOG_PREFIX = "[RegisterCharacterView:RaceHeads]";
 
 const isSetGenderAllowed = (setGender: string, selectedGender: string): boolean => {
     if (!setGender || !selectedGender) {
@@ -354,7 +359,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                             figureString,
                             AvatarScaleType.LARGE,
                             null,
-                            { resetFigure, dispose: null, disposed: false } as any,
+                            { resetFigure, dispose: () => {}, disposed: false } as any,
                         );
 
                         if (!avatarImage) {
@@ -431,6 +436,179 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
             }
         };
     }, [visualColorItems]);
+
+    const raceHeadItems = useMemo<AvatarEditorGridPartItem[]>(() => {
+        if (!figureData || !isAvatarStructureReady) {
+            if (RACE_HEAD_DEBUG) {
+                console.log(RACE_HEAD_LOG_PREFIX, "raceHeadItems blocked", {
+                    hasFigureData: !!figureData,
+                    isAvatarStructureReady,
+                });
+            }
+
+            return [];
+        }
+
+        const faceSetTypeData = GetAvatarSetType(FigureData.FACE) as any;
+
+        if (
+            !faceSetTypeData ||
+            !faceSetTypeData.partSets ||
+            typeof faceSetTypeData.partSets.getValues !== "function"
+        ) {
+            if (RACE_HEAD_DEBUG) {
+                console.log(
+                    RACE_HEAD_LOG_PREFIX,
+                    "face set type unavailable",
+                    { faceSetTypeData },
+                );
+            }
+
+            return [];
+        }
+
+        const currentGender =
+            gender === FigureData.FEMALE ? FigureData.FEMALE : FigureData.MALE;
+        const selectedColorIds = figureData.getColorIds(FigureData.FACE) || [];
+
+        let selectedPartColors: any[] = [];
+
+        if (faceSetTypeData.paletteID >= 0) {
+            const palette = GetAvatarPalette(faceSetTypeData.paletteID) as any;
+            const paletteColors =
+                palette && palette.colors && typeof palette.colors.getValues === "function"
+                    ? (palette.colors.getValues() as any[])
+                    : [];
+
+            selectedPartColors = selectedColorIds
+                .map((colorId) =>
+                    paletteColors.find((color) => Number(color.id) === Number(colorId)),
+                )
+                .filter((color) => !!color);
+        }
+
+        const rawFaceSets =
+            typeof faceSetTypeData.partSets.getValues === "function"
+                ? (faceSetTypeData.partSets.getValues() as any[])
+                : [];
+        const filteredFaceSets = rawFaceSets
+            .filter((partSet) => {
+                if (!partSet || !partSet.isSelectable) {
+                    return false;
+                }
+
+                return isSetGenderAllowed(partSet.gender, currentGender);
+            })
+            .sort((a, b) => Number(b.id) - Number(a.id));
+
+        if (!filteredFaceSets.length) {
+            if (RACE_HEAD_DEBUG) {
+                console.log(RACE_HEAD_LOG_PREFIX, "no filtered face sets", {
+                    rawCount: rawFaceSets.length,
+                    gender: currentGender,
+                });
+            }
+
+            return [];
+        }
+
+        const pickedFaceSets: any[] = [];
+        const pickedFaceIds = new Set<number>();
+        const tryPick = (partSet: any) => {
+            if (!partSet) {
+                return;
+            }
+
+            const partSetId = Number(partSet.id);
+
+            if (pickedFaceIds.has(partSetId)) {
+                return;
+            }
+
+            pickedFaceIds.add(partSetId);
+            pickedFaceSets.push(partSet);
+        };
+
+        for (const pickIndex of RACE_ICON_PICK_INDICES) {
+            if (pickedFaceSets.length >= RACE_OPTIONS.length) {
+                break;
+            }
+
+            tryPick(filteredFaceSets[pickIndex]);
+        }
+
+        for (const partSet of filteredFaceSets) {
+            if (pickedFaceSets.length >= RACE_OPTIONS.length) {
+                break;
+            }
+
+            tryPick(partSet);
+        }
+
+        const nextRaceHeadItems = pickedFaceSets
+            .slice(0, RACE_OPTIONS.length)
+            .map((partSet) => {
+                const partItem = new AvatarEditorGridPartItem(
+                    partSet,
+                    selectedPartColors,
+                    false,
+                    false,
+                );
+
+                partItem.init();
+
+                if (figureData) {
+                    const resetFigure = (_figure: string) => {
+                        const figureString = figureData.getFigureStringWithFace(
+                            Number(partSet.id),
+                        );
+                        const avatarImage = avatarRenderManager.createAvatarImage(
+                            figureString,
+                            AvatarScaleType.LARGE,
+                            null,
+                            { resetFigure, dispose: () => {}, disposed: false } as any,
+                        );
+
+                        if (!avatarImage) {
+                            return;
+                        }
+
+                        const sprite = avatarImage.getImageAsSprite(AvatarSetType.HEAD);
+
+                        if (sprite) {
+                            sprite.y = 10;
+                            partItem.thumbContainer = sprite;
+                        }
+
+                        setTimeout(() => avatarImage.dispose(), 0);
+                    };
+
+                    resetFigure("");
+                }
+
+                return partItem;
+            });
+
+        if (RACE_HEAD_DEBUG) {
+            console.log(RACE_HEAD_LOG_PREFIX, "raceHeadItems ready", {
+                rawFaceSetCount: rawFaceSets.length,
+                filteredFaceSetCount: filteredFaceSets.length,
+                selectedCount: nextRaceHeadItems.length,
+                ids: nextRaceHeadItems.map((item) => item.id),
+            });
+        }
+
+        return nextRaceHeadItems;
+    }, [avatarRenderManager, figureData, gender, isAvatarStructureReady, avatarStructureVersion]);
+
+    useEffect(() => {
+        return () => {
+            for (const raceHeadItem of raceHeadItems) {
+                raceHeadItem.dispose();
+            }
+        };
+    }, [raceHeadItems]);
+
     const previewNode = useMemo(() => {
         if (!figureData) {
             return null;
@@ -523,16 +701,6 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         figureData,
     ]);
 
-
-    const raceOptions = ["Android", "Ciclope", "Bionic", "Basalts", "Hammer"];
-    const classOptions = [
-        "Minerador",
-        "Hacker",
-        "Quimico",
-        "Mecanico",
-        "Medico",
-        "Programador",
-    ];
 
     return (
         <Column gap={3} className="guest-auth-register-character">
@@ -660,18 +828,31 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
                     <div className="guest-auth-race-choice-panel">
                         <div className="guest-auth-race-choice-buttons">
-                            {raceOptions.map((option) => (
-                                <button
-                                    key={`race-btn-${option}`}
-                                    type="button"
-                                    className={`guest-auth-race-choice-btn ${race === option ? "is-active" : ""}`}
-                                    title={option}
-                                    aria-label={option}
-                                    onClick={() => setRace(option)}
-                                >
-                                    {RACE_SKILL_SYMBOLS[option] || "RC"}
-                                </button>
-                            ))}
+                            {RACE_OPTIONS.map((option, index) => {
+                                const raceHeadItem = raceHeadItems[index] || null;
+
+                                if (!raceHeadItem) {
+                                    return (
+                                        <div
+                                            key={`race-btn-${option}`}
+                                            className="guest-auth-race-grid-empty"
+                                            aria-hidden="true"
+                                        />
+                                    );
+                                }
+
+                                raceHeadItem.isSelected = race === option;
+
+                                return (
+                                    <AvatarEditorFigureSetItemView
+                                        key={`race-btn-${option}`}
+                                        partItem={raceHeadItem}
+                                        className="guest-auth-race-grid-item"
+                                        title={option}
+                                        onClick={() => setRace(option)}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -728,7 +909,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
                         <div className="guest-auth-class-choice-panel">
                             <div className="guest-auth-class-skill-buttons">
-                                {classOptions.map((option) => (
+                                {CLASS_OPTIONS.map((option) => (
                                     <button
                                         key={`class-btn-${option}`}
                                         type="button"
@@ -804,7 +985,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                                 setRace(event.target.value)
                             }
                         >
-                            {raceOptions.map((raceOption) => (
+                            {RACE_OPTIONS.map((raceOption) => (
                                 <option key={raceOption} value={raceOption}>
                                     {raceOption}
                                 </option>

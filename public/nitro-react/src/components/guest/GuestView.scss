@@ -102,7 +102,7 @@
 
 .guest-auth-register-character-layout {
     --register-preview-height: 252px;
-    --register-selection-row-height: 72px;
+    --register-selection-row-height: 80px;
     --register-section-gap: 6px;
     flex: 1;
     display: grid;
@@ -380,41 +380,38 @@
 .guest-auth-race-choice-panel {
     border: 1px solid #b5b5b5;
     background: #e3e3e3;
-    padding: 8px;
+    padding: 6px;
     height: var(--register-selection-row-height);
     display: flex;
     align-items: center;
 }
 
 .guest-auth-race-choice-buttons {
+    --nitro-grid-column-min-height: 62px;
     display: grid;
-    grid-template-columns: repeat(5, 40px);
+    grid-template-columns: repeat(5, 62px);
     gap: 6px;
     justify-content: start;
 }
 
-.guest-auth-race-choice-btn {
-    width: 40px;
-    height: 40px;
-    border: 1px solid #9fb0c6;
-    background: #ecf2fb;
+.guest-auth-race-grid-item.layout-grid-item {
+    min-height: 62px;
+    width: 62px;
+    background-color: #c2cfdd;
+    border-color: #a8b2c1 !important;
+}
+
+.guest-auth-race-grid-item.layout-grid-item.active {
+    border-color: #1f5974 !important;
+    background-color: #d3deea !important;
+}
+
+.guest-auth-race-grid-empty {
+    width: 62px;
+    height: 62px;
+    border: 1px solid #a8b2c1;
     border-radius: 4px;
-    color: #1d2d40;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 0;
-    line-height: 1;
-
-    &:hover {
-        border-color: #7b8ea6;
-        background: #dfe8f4;
-    }
-
-    &.is-active {
-        border-color: #1f5974;
-        background: #d8e7f5;
-        box-shadow: inset 0 0 0 1px rgba(31, 89, 116, 0.28);
-    }
+    background: #c2cfdd;
 }
 
 .guest-auth-race-info-box {
