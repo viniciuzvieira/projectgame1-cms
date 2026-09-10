@@ -7,7 +7,9 @@ import { AchievementsView } from '../achievements/AchievementsView';
 import { AvatarEditorView } from '../avatar-editor/AvatarEditorView';
 import { CameraWidgetView } from '../camera/CameraWidgetView';
 import { CampaignView } from '../campaign/CampaignView';
+import { CardPackOpeningView } from '../card-packs/CardPackOpeningView';
 import { CatalogView } from '../catalog/CatalogView';
+import { CdCaseOpeningView } from '../cd-case/CdCaseOpeningView';
 import { ChatHistoryView } from '../chat-history/ChatHistoryView';
 import { FloorplanEditorView } from '../floorplan-editor/FloorplanEditorView';
 import { FriendsView } from '../friends/FriendsView';
@@ -101,6 +103,8 @@ export const MainView: FC<{}> = props => {
             <GuideToolView />
             <HcCenterView />
             <CampaignView />
+            <CardPackOpeningView />
+            <CdCaseOpeningView />
         </Base>
     );
 }

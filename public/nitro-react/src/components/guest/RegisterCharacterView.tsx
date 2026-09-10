@@ -7,12 +7,27 @@ import {
     GetAvatarPalette,
     GetAvatarRenderManager,
     GetAvatarSetType,
+    GetConfiguration,
 } from "../../api";
-import { Button, Column, Flex, FormGroup, Text } from "../../common";
+import {
+    Button,
+    Column,
+    Flex,
+    FormGroup,
+    LayoutAvatarImageView,
+    LayoutGridItem,
+    LayoutPixelLoadingView,
+    Text,
+} from "../../common";
 import { AvatarEditorIcon } from "../avatar-editor/views/AvatarEditorIcon";
 import { AvatarEditorFigurePreviewView } from "../avatar-editor/views/AvatarEditorFigurePreviewView";
 import { AvatarEditorFigureSetItemView } from "../avatar-editor/views/figure-set/AvatarEditorFigureSetItemView";
 import { AvatarEditorPaletteSetItem } from "../avatar-editor/views/palette-set/AvatarEditorPaletteSetItemView";
+import {
+    CharacterRace,
+    FALLBACK_CHARACTER_RACES,
+    GetCharacterRaces,
+} from "./CharacterRaces";
 
 interface RegisterCharacterViewProps {
     statusMessage: string;
@@ -109,7 +124,6 @@ const CLASS_SKILL_SYMBOLS: Record<string, string> = {
     Programador: "PG",
 };
 
-const RACE_OPTIONS = ["Android", "Ciclope", "Bionic", "Basalts", "Hammer"];
 const CLASS_OPTIONS = [
     "Minerador",
     "Hacker",
@@ -118,9 +132,8 @@ const CLASS_OPTIONS = [
     "Medico",
     "Programador",
 ];
-const RACE_ICON_PICK_INDICES = [0, 2, 4, 8, 12];
-const RACE_HEAD_DEBUG = true;
-const RACE_HEAD_LOG_PREFIX = "[RegisterCharacterView:RaceHeads]";
+const FIGURE_NITRO_DEBUG = true;
+const FIGURE_NITRO_LOG_PREFIX = "[RegisterCharacterView:FigureNitro]";
 
 const isSetGenderAllowed = (setGender: string, selectedGender: string): boolean => {
     if (!setGender || !selectedGender) {
@@ -155,7 +168,11 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
     const [gender, setGender] = useState(FigureData.MALE);
-    const [race, setRace] = useState("Android");
+    const [raceOptions, setRaceOptions] = useState<CharacterRace[]>(
+        FALLBACK_CHARACTER_RACES,
+    );
+    const [racesLoaded, setRacesLoaded] = useState(false);
+    const [race, setRace] = useState("android");
     const [className, setClassName] = useState("Minerador");
     const [figureData, setFigureData] = useState<FigureData | null>(null);
     const [activeCustomizationTab, setActiveCustomizationTab] =
@@ -169,14 +186,6 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         avatarRenderManager && avatarRenderManager.structureData
     );
 
-    const raceDescriptions: Record<string, string> = {
-        Android: "Corpos sinteticos com foco em precisao e resistencia.",
-        Ciclope: "Visao singular e presenca intimidadora em combate e exploracao.",
-        Bionic: "Mistura de carne e maquina, com adaptabilidade elevada.",
-        Basalts: "Estrutura pesada e robusta, otima para suportar dano.",
-        Hammer: "Perfil agressivo e tecnico, ideal para avancar ofensivamente.",
-    };
-
     const classDescriptions: Record<string, string> = {
         Minerador: "Especialista em coleta, exploracao e recursos.",
         Hacker: "Voltado para tecnologia, invasao e suporte digital.",
@@ -185,6 +194,41 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         Medico: "Especialista em cura, suporte e recuperacao.",
         Programador: "Logica, automacao e controle de sistemas.",
     };
+
+    const selectedRace = useMemo(
+        () => raceOptions.find((option) => option.code === race) || raceOptions[0],
+        [raceOptions, race],
+    );
+
+    useEffect(() => {
+        let disposed = false;
+
+        GetCharacterRaces()
+            .then((availableRaces) => {
+                if (disposed || !availableRaces.length) {
+                    return;
+                }
+
+                setRaceOptions(availableRaces);
+                setRace((currentRace) =>
+                    availableRaces.some((option) => option.code === currentRace)
+                        ? currentRace
+                        : availableRaces[0].code,
+                );
+                setRacesLoaded(true);
+            })
+            .catch((error) => {
+                console.error("Unable to load character races.", error);
+
+                if (!disposed) {
+                    setRacesLoaded(true);
+                }
+            });
+
+        return () => {
+            disposed = true;
+        };
+    }, []);
 
     const getTabTargetSets = useCallback((tab: CustomizationTab): string[] => {
         switch (tab) {
@@ -243,25 +287,64 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         };
     }, [avatarRenderManager]);
 
-    const buildFigureData = useCallback((nextGender: string): FigureData => {
-        const normalizedGender =
-            nextGender === FigureData.FEMALE
-                ? FigureData.FEMALE
-                : FigureData.MALE;
-        const fallbackFigure =
-            normalizedGender === FigureData.FEMALE
-                ? DEFAULT_FEMALE_FIGURE
-                : DEFAULT_MALE_FIGURE;
+    const buildFigureData = useCallback(
+        (nextGender: string, nextRace: CharacterRace): FigureData => {
+            const normalizedGender =
+                nextGender === FigureData.FEMALE
+                    ? FigureData.FEMALE
+                    : FigureData.MALE;
+            const fallbackFigure =
+                normalizedGender === FigureData.FEMALE
+                    ? DEFAULT_FEMALE_FIGURE
+                    : DEFAULT_MALE_FIGURE;
 
-        const figure = new FigureData();
-        figure.loadAvatarData(fallbackFigure, normalizedGender);
+            const figure = new FigureData();
+            figure.loadAvatarData(fallbackFigure, normalizedGender);
 
-        return figure;
-    }, []);
+            for (const figureType of nextRace?.spriteSet?.removedFigureTypes || []) {
+                figure.savePartData(figureType, -1, [], false);
+            }
+
+            for (const part of nextRace?.spriteSet?.parts || []) {
+                figure.savePartData(
+                    part.figureType,
+                    Number(part.figureSetId),
+                    part.colorIds || [],
+                    false,
+                );
+            }
+
+            return figure;
+        },
+        [],
+    );
 
     useEffect(() => {
-        setFigureData(buildFigureData(gender));
-    }, [gender, buildFigureData]);
+        if (!racesLoaded) {
+            setFigureData(null);
+            return;
+        }
+
+        setFigureData(buildFigureData(gender, selectedRace));
+    }, [gender, selectedRace, buildFigureData, racesLoaded]);
+
+    const racePreviewFigures = useMemo(() => {
+        const previews: Record<string, string> = {};
+
+        if (!racesLoaded) {
+            return previews;
+        }
+
+        for (const option of raceOptions) {
+            if (!option.spriteSet) {
+                continue;
+            }
+
+            previews[option.code] = buildFigureData(gender, option).getFigureString();
+        }
+
+        return previews;
+    }, [raceOptions, gender, buildFigureData, racesLoaded]);
 
     const activeSetTypes = useMemo(
         () => getTabTargetSets(activeCustomizationTab),
@@ -437,185 +520,131 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
         };
     }, [visualColorItems]);
 
-    const raceHeadItems = useMemo<AvatarEditorGridPartItem[]>(() => {
-        if (!figureData || !isAvatarStructureReady) {
-            if (RACE_HEAD_DEBUG) {
-                console.log(RACE_HEAD_LOG_PREFIX, "raceHeadItems blocked", {
-                    hasFigureData: !!figureData,
-                    isAvatarStructureReady,
-                });
-            }
-
-            return [];
-        }
-
-        const faceSetTypeData = GetAvatarSetType(FigureData.FACE) as any;
-
-        if (
-            !faceSetTypeData ||
-            !faceSetTypeData.partSets ||
-            typeof faceSetTypeData.partSets.getValues !== "function"
-        ) {
-            if (RACE_HEAD_DEBUG) {
-                console.log(
-                    RACE_HEAD_LOG_PREFIX,
-                    "face set type unavailable",
-                    { faceSetTypeData },
-                );
-            }
-
-            return [];
-        }
-
-        const currentGender =
-            gender === FigureData.FEMALE ? FigureData.FEMALE : FigureData.MALE;
-        const selectedColorIds = figureData.getColorIds(FigureData.FACE) || [];
-
-        let selectedPartColors: any[] = [];
-
-        if (faceSetTypeData.paletteID >= 0) {
-            const palette = GetAvatarPalette(faceSetTypeData.paletteID) as any;
-            const paletteColors =
-                palette && palette.colors && typeof palette.colors.getValues === "function"
-                    ? (palette.colors.getValues() as any[])
-                    : [];
-
-            selectedPartColors = selectedColorIds
-                .map((colorId) =>
-                    paletteColors.find((color) => Number(color.id) === Number(colorId)),
-                )
-                .filter((color) => !!color);
-        }
-
-        const rawFaceSets =
-            typeof faceSetTypeData.partSets.getValues === "function"
-                ? (faceSetTypeData.partSets.getValues() as any[])
-                : [];
-        const filteredFaceSets = rawFaceSets
-            .filter((partSet) => {
-                if (!partSet || !partSet.isSelectable) {
-                    return false;
-                }
-
-                return isSetGenderAllowed(partSet.gender, currentGender);
-            })
-            .sort((a, b) => Number(b.id) - Number(a.id));
-
-        if (!filteredFaceSets.length) {
-            if (RACE_HEAD_DEBUG) {
-                console.log(RACE_HEAD_LOG_PREFIX, "no filtered face sets", {
-                    rawCount: rawFaceSets.length,
-                    gender: currentGender,
-                });
-            }
-
-            return [];
-        }
-
-        const pickedFaceSets: any[] = [];
-        const pickedFaceIds = new Set<number>();
-        const tryPick = (partSet: any) => {
-            if (!partSet) {
-                return;
-            }
-
-            const partSetId = Number(partSet.id);
-
-            if (pickedFaceIds.has(partSetId)) {
-                return;
-            }
-
-            pickedFaceIds.add(partSetId);
-            pickedFaceSets.push(partSet);
-        };
-
-        for (const pickIndex of RACE_ICON_PICK_INDICES) {
-            if (pickedFaceSets.length >= RACE_OPTIONS.length) {
-                break;
-            }
-
-            tryPick(filteredFaceSets[pickIndex]);
-        }
-
-        for (const partSet of filteredFaceSets) {
-            if (pickedFaceSets.length >= RACE_OPTIONS.length) {
-                break;
-            }
-
-            tryPick(partSet);
-        }
-
-        const nextRaceHeadItems = pickedFaceSets
-            .slice(0, RACE_OPTIONS.length)
-            .map((partSet) => {
-                const partItem = new AvatarEditorGridPartItem(
-                    partSet,
-                    selectedPartColors,
-                    false,
-                    false,
-                );
-
-                partItem.init();
-
-                if (figureData) {
-                    const resetFigure = (_figure: string) => {
-                        const figureString = figureData.getFigureStringWithFace(
-                            Number(partSet.id),
-                        );
-                        const avatarImage = avatarRenderManager.createAvatarImage(
-                            figureString,
-                            AvatarScaleType.LARGE,
-                            null,
-                            { resetFigure, dispose: () => {}, disposed: false } as any,
-                        );
-
-                        if (!avatarImage) {
-                            return;
-                        }
-
-                        const sprite = avatarImage.getImageAsSprite(AvatarSetType.HEAD);
-
-                        if (sprite) {
-                            sprite.y = 10;
-                            partItem.thumbContainer = sprite;
-                        }
-
-                        setTimeout(() => avatarImage.dispose(), 0);
-                    };
-
-                    resetFigure("");
-                }
-
-                return partItem;
-            });
-
-        if (RACE_HEAD_DEBUG) {
-            console.log(RACE_HEAD_LOG_PREFIX, "raceHeadItems ready", {
-                rawFaceSetCount: rawFaceSets.length,
-                filteredFaceSetCount: filteredFaceSets.length,
-                selectedCount: nextRaceHeadItems.length,
-                ids: nextRaceHeadItems.map((item) => item.id),
-            });
-        }
-
-        return nextRaceHeadItems;
-    }, [avatarRenderManager, figureData, gender, isAvatarStructureReady, avatarStructureVersion]);
-
-    useEffect(() => {
-        return () => {
-            for (const raceHeadItem of raceHeadItems) {
-                raceHeadItem.dispose();
-            }
-        };
-    }, [raceHeadItems]);
-
     const previewNode = useMemo(() => {
         if (!figureData) {
-            return null;
+            return (
+                <div className="guest-auth-avatar-loading-stage">
+                    <LayoutPixelLoadingView size="large" label="Carregando avatar" />
+                </div>
+            );
         }
 
-        return <AvatarEditorFigurePreviewView figureData={figureData} />;
+        return (
+            <AvatarEditorFigurePreviewView
+                figureData={figureData}
+                showAvatarLoading
+            />
+        );
     }, [figureData]);
+
+    const resolveSetNitroLibraries = useCallback(
+        (setType: string, targetFigure: FigureData = figureData) => {
+            if (!targetFigure || !avatarRenderManager || !isAvatarStructureReady) {
+                return null;
+            }
+
+            const structureData = avatarRenderManager.structureData as any;
+            const setTypeData =
+                structureData && typeof structureData.getSetType === "function"
+                    ? structureData.getSetType(setType)
+                    : null;
+
+            if (!setTypeData || typeof setTypeData.getPartSet !== "function") {
+                return null;
+            }
+
+            const setId = Number(targetFigure.getPartSetId(setType));
+
+            if (!(setId >= 0)) {
+                return {
+                    setType,
+                    setId,
+                    partKeys: [] as string[],
+                    libraries: [] as string[],
+                    files: [] as string[],
+                };
+            }
+
+            const partSet = setTypeData.getPartSet(setId);
+
+            if (!partSet || !Array.isArray(partSet.parts)) {
+                return {
+                    setType,
+                    setId,
+                    partKeys: [] as string[],
+                    libraries: [] as string[],
+                    files: [] as string[],
+                };
+            }
+
+            const downloadManager = avatarRenderManager.downloadManager as any;
+            const figureMap =
+                downloadManager && downloadManager._figureMap
+                    ? downloadManager._figureMap
+                    : null;
+
+            const partKeys = (partSet.parts as any[])
+                .filter((part) => !!part)
+                .map((part) => `${part.type}:${part.id}`);
+            const libraryNames = new Set<string>();
+            const assetUrlTemplate = GetConfiguration<string>("avatar.asset.url", "");
+
+            for (const partKey of partKeys) {
+                const libraries =
+                    figureMap && typeof figureMap.get === "function"
+                        ? figureMap.get(partKey)
+                        : null;
+
+                if (!libraries || !Array.isArray(libraries)) {
+                    continue;
+                }
+
+                for (const library of libraries) {
+                    if (!library) {
+                        continue;
+                    }
+
+                    if (typeof library.libraryName === "string" && library.libraryName.length) {
+                        libraryNames.add(library.libraryName);
+                        continue;
+                    }
+
+                    if (typeof library._libraryName === "string" && library._libraryName.length) {
+                        libraryNames.add(library._libraryName);
+                    }
+                }
+            }
+
+            return {
+                setType,
+                setId,
+                partKeys,
+                libraries: Array.from(libraryNames),
+                files: Array.from(libraryNames).map((libraryName) =>
+                    assetUrlTemplate.replace(/%libname%/gi, libraryName),
+                ),
+            };
+        },
+        [avatarRenderManager, figureData, isAvatarStructureReady],
+    );
+
+    useEffect(() => {
+        if (!FIGURE_NITRO_DEBUG || !figureData) {
+            return;
+        }
+
+        const look = figureData.getFigureString();
+        const torso = resolveSetNitroLibraries(FigureData.SHIRT);
+        const legs = resolveSetNitroLibraries(FigureData.TROUSERS);
+        const shoes = resolveSetNitroLibraries(FigureData.SHOES);
+
+        console.log(FIGURE_NITRO_LOG_PREFIX, {
+            look,
+            torso,
+            legs,
+            shoes,
+        });
+    }, [figureData, resolveSetNitroLibraries]);
 
     const statusNode = useMemo(() => {
         if (!statusMessage.length) {
@@ -645,9 +674,33 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                 true,
             );
 
+            if (FIGURE_NITRO_DEBUG) {
+                const selectedPart = resolveSetNitroLibraries(
+                    activePartSetType,
+                    nextFigure,
+                );
+
+                console.groupCollapsed(
+                    `${FIGURE_NITRO_LOG_PREFIX} ${activePartSetType}-${partItem.id}`,
+                );
+                console.log("Peça selecionada", {
+                    category: activePartSetType,
+                    setId: partItem.id,
+                    look: nextFigure.getFigureString(),
+                });
+                console.log("Arquivos .nitro", selectedPart?.files || []);
+                console.log("Detalhes", selectedPart);
+                console.groupEnd();
+            }
+
             setFigureData(nextFigure);
         },
-        [figureData, activePartSetType, gender],
+        [
+            figureData,
+            activePartSetType,
+            gender,
+            resolveSetNitroLibraries,
+        ],
     );
 
     const handleSelectColor = useCallback(
@@ -828,29 +881,57 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
 
                     <div className="guest-auth-race-choice-panel">
                         <div className="guest-auth-race-choice-buttons">
-                            {RACE_OPTIONS.map((option, index) => {
-                                const raceHeadItem = raceHeadItems[index] || null;
+                            {raceOptions.map((option) => {
+                                const racePreviewFigure = racePreviewFigures[option.code];
 
-                                if (!raceHeadItem) {
+                                if (!racesLoaded) {
                                     return (
-                                        <div
-                                            key={`race-btn-${option}`}
-                                            className="guest-auth-race-grid-empty"
-                                            aria-hidden="true"
-                                        />
+                                        <LayoutGridItem
+                                            key={`race-btn-${option.code}`}
+                                            disabled
+                                            className="guest-auth-race-grid-item guest-auth-race-grid-loading"
+                                            aria-label={`Carregando ${option.name}`}
+                                        >
+                                            <LayoutPixelLoadingView
+                                                size="small"
+                                                label={`Carregando ${option.name}`}
+                                            />
+                                        </LayoutGridItem>
                                     );
                                 }
 
-                                raceHeadItem.isSelected = race === option;
+                                if (racePreviewFigure) {
+                                    return (
+                                        <LayoutGridItem
+                                            key={`race-btn-${option.code}`}
+                                            itemActive={race === option.code}
+                                            className="guest-auth-race-grid-item"
+                                            title={option.name}
+                                            onClick={() => setRace(option.code)}
+                                        >
+                                            <LayoutAvatarImageView
+                                                figure={racePreviewFigure}
+                                                gender={gender}
+                                                direction={4}
+                                                headOnly
+                                                showLoading
+                                                loadingSize="small"
+                                                className="guest-auth-race-skin-head"
+                                            />
+                                        </LayoutGridItem>
+                                    );
+                                }
 
                                 return (
-                                    <AvatarEditorFigureSetItemView
-                                        key={`race-btn-${option}`}
-                                        partItem={raceHeadItem}
-                                        className="guest-auth-race-grid-item"
-                                        title={option}
-                                        onClick={() => setRace(option)}
-                                    />
+                                    <LayoutGridItem
+                                        key={`race-btn-${option.code}`}
+                                        itemActive={race === option.code}
+                                        className="guest-auth-race-grid-item guest-auth-race-grid-unavailable"
+                                        title={option.name}
+                                        onClick={() => setRace(option.code)}
+                                    >
+                                        {option.name.slice(0, 2).toUpperCase()}
+                                    </LayoutGridItem>
                                 );
                             })}
                         </div>
@@ -861,7 +942,7 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                             Race Description
                         </div>
                         <Text className="guest-auth-copy">
-                            {raceDescriptions[race]}
+                            {selectedRace?.description || ""}
                         </Text>
                     </div>
                 </div>
@@ -985,9 +1066,9 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                                 setRace(event.target.value)
                             }
                         >
-                            {RACE_OPTIONS.map((raceOption) => (
-                                <option key={raceOption} value={raceOption}>
-                                    {raceOption}
+                            {raceOptions.map((raceOption) => (
+                                <option key={raceOption.code} value={raceOption.code}>
+                                    {raceOption.name}
                                 </option>
                             ))}
                         </select>

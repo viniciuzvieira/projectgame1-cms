@@ -60078,6 +60078,9 @@
           ],
           "hiddenLayers": [
             {
+              "partType": "hd"
+            },
+            {
               "partType": "hr"
             },
             {

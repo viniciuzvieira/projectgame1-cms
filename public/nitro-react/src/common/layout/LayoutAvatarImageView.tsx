@@ -6,6 +6,7 @@ import {
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from "react";
 import { GetAvatarRenderManager } from "../../api";
 import { Base, BaseProps } from "../Base";
+import { LayoutPixelLoadingSize, LayoutPixelLoadingView } from "./LayoutPixelLoadingView";
 
 export interface LayoutAvatarImageViewProps extends BaseProps<HTMLDivElement> {
     figure: string;
@@ -13,6 +14,8 @@ export interface LayoutAvatarImageViewProps extends BaseProps<HTMLDivElement> {
     headOnly?: boolean;
     direction?: number;
     scale?: number;
+    showLoading?: boolean;
+    loadingSize?: LayoutPixelLoadingSize;
 }
 
 export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
@@ -24,11 +27,14 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
         headOnly = false,
         direction = 0,
         scale = 1,
+        showLoading = false,
+        loadingSize = "medium",
         classNames = [],
         style = {},
         ...rest
     } = props;
-    const [avatarUrl, setAvatarUrl] = useState<string>(null);
+    const renderKey = `${figure}|${gender}|${headOnly ? 1 : 0}|${direction}|${scale}`;
+    const [avatarImage, setAvatarImage] = useState<{ key: string; url: string }>(null);
     const [randomValue, setRandomValue] = useState(-1);
     const isDisposed = useRef(false);
     const DEBUG = true;
@@ -44,6 +50,9 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
 
     const getStyle = useMemo(() => {
         let newStyle: CSSProperties = {};
+        const avatarUrl = avatarImage && avatarImage.key === renderKey
+            ? avatarImage.url
+            : null;
 
         if (avatarUrl && avatarUrl.length)
             newStyle.backgroundImage = `url('${avatarUrl}')`;
@@ -57,7 +66,9 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
         if (Object.keys(style).length) newStyle = { ...newStyle, ...style };
 
         return newStyle;
-    }, [avatarUrl, scale, style]);
+    }, [avatarImage, renderKey, scale, style]);
+
+    const isLoading = !avatarImage || avatarImage.key !== renderKey;
 
     useEffect(() => {
         isDisposed.current = false;
@@ -69,7 +80,6 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
 
     useEffect(() => {
         let cancelled = false;
-        setAvatarUrl(null);
 
         const avatarRenderManager = GetAvatarRenderManager();
 
@@ -119,15 +129,23 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
         const renderAvatar = () => {
             if (cancelled || isDisposed.current) return;
 
+            const figureContainer = avatarRenderManager.createFigureContainer(figure);
+            const listener = {
+                resetFigure: rerender,
+                dispose: () => {},
+                disposed: false,
+            };
+
+            if (!avatarRenderManager.isFigureContainerReady(figureContainer)) {
+                avatarRenderManager.downloadAvatarFigure(figureContainer, listener);
+                return;
+            }
+
             const avatarImage = avatarRenderManager.createAvatarImage(
                 figure,
                 AvatarScaleType.LARGE,
                 gender,
-                {
-                    resetFigure: rerender,
-                    dispose: () => {},
-                    disposed: false,
-                },
+                listener,
                 null,
             );
 
@@ -152,7 +170,7 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
                         srcLength: image.src.length,
                     });
                 }
-                setAvatarUrl(image.src);
+                setAvatarImage({ key: renderKey, url: image.src });
             } else if (DEBUG) {
                 console.log(DEBUG_PREFIX, "cropped image missing");
             }
@@ -169,7 +187,13 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (
                 rerender,
             );
         };
-    }, [figure, gender, direction, headOnly, scale, randomValue]);
+    }, [figure, gender, direction, headOnly, scale, randomValue, renderKey]);
 
-    return <Base classNames={getClassNames} style={getStyle} {...rest} />;
+    return (
+        <Base classNames={getClassNames} style={getStyle} aria-busy={ showLoading && isLoading } { ...rest }>
+            { showLoading && isLoading && (
+                <LayoutPixelLoadingView size={ loadingSize } label="Carregando avatar" />
+            ) }
+        </Base>
+    );
 };

@@ -10,6 +10,7 @@ export * from './LayoutGridItem';
 export * from './LayoutImage';
 export * from './LayoutItemCountView';
 export * from './LayoutLoadingSpinnerView';
+export * from './LayoutPixelLoadingView';
 export * from './LayoutMiniCameraView';
 export * from './LayoutNotificationAlertView';
 export * from './LayoutNotificationBubbleView';

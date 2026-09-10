@@ -2,13 +2,15 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Fortify\Rules\PasswordValidationRules;
+use App\Models\CharacterRace;
 use App\Models\User;
 use App\Models\WebsiteBetaCode;
 use App\Providers\RouteServiceProvider;
 use App\Rules\BetaCodeRule;
 use App\Rules\GoogleRecaptchaRule;
-use App\Actions\Fortify\Rules\PasswordValidationRules;
 use App\Rules\WebsiteWordfilterRule;
+use App\Services\CharacterSpriteSetLookService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -19,6 +21,11 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules;
+
+    public function __construct(
+        private CharacterSpriteSetLookService $spriteSetLookService
+    ) {
+    }
 
     /**
      * Validate and create a newly registered user.
@@ -33,7 +40,7 @@ class CreateNewUser implements CreatesNewUsers
         }
 
         $ip = request()->ip();
-        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6)) {
+        if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6)) {
             throw ValidationException::withMessages([
                 'registration' => __('Your IP address seems to be invalid'),
             ]);
@@ -44,13 +51,28 @@ class CreateNewUser implements CreatesNewUsers
             ->orWhere('ip_register', '=', $ip)
             ->count();
 
-        if ($matchingIpCount >= (int)setting('max_accounts_per_ip')) {
+        if ($matchingIpCount >= (int) setting('max_accounts_per_ip')) {
             throw ValidationException::withMessages([
                 'registration' => __('You have reached the max amount of allowed account'),
             ]);
         }
 
         $this->validate($input);
+
+        $race = null;
+        $look = $input['look'] ?? setting('start_look');
+
+        if (! empty($input['race'])) {
+            $race = CharacterRace::query()
+                ->active()
+                ->with('defaultSpriteSet.parts')
+                ->where('code', $input['race'])
+                ->firstOrFail();
+
+            if ($race->defaultSpriteSet) {
+                $look = $this->spriteSetLookService->apply($look, $race->defaultSpriteSet);
+            }
+        }
 
         $user = User::create([
             'username' => $input['username'],
@@ -59,21 +81,23 @@ class CreateNewUser implements CreatesNewUsers
             'account_created' => time(),
             'last_login' => time(),
             'motto' => setting('start_motto'),
-            'look' => setting('start_look'),
+            'look' => $look,
+            'gender' => $input['gender'] ?? 'M',
+            'character_race_id' => $race?->id,
             'credits' => setting('start_credits'),
             'ip_register' => $ip,
             'ip_current' => $ip,
             'auth_ticket' => '',
-            'home_room' => (int)setting('hotel_home_room'),
+            'home_room' => (int) setting('hotel_home_room'),
         ]);
 
         $user->update([
-            'referral_code' => sprintf('%s%s', $user->id, Str::random(5))
+            'referral_code' => sprintf('%s%s', $user->id, Str::random(5)),
         ]);
 
         if (setting('requires_beta_code')) {
             WebsiteBetaCode::where('code', '=', $input['beta_code'])->update([
-                'user_id' => $user->id
+                'user_id' => $user->id,
             ]);
         }
 
@@ -111,12 +135,24 @@ class CreateNewUser implements CreatesNewUsers
             'username' => ['required', 'string', sprintf('regex:%s', setting('username_regex')), 'max:25', Rule::unique('users'), new WebsiteWordfilterRule],
             'mail' => ['required', 'string', 'email', 'max:255', Rule::unique('users')],
             'password' => $this->passwordRules(),
+            'gender' => ['nullable', Rule::in(['M', 'F'])],
+            'race' => [
+                'nullable',
+                'string',
+                Rule::exists('character_races', 'code')->where('is_active', true),
+            ],
+            'look' => [
+                'nullable',
+                'string',
+                'max:256',
+                'regex:/^[a-z]{2,4}-\d+(?:-\d+)*(?:\.[a-z]{2,4}-\d+(?:-\d+)*)*$/',
+            ],
             'beta_code' => ['sometimes', 'string', new BetaCodeRule],
             'terms' => ['required', 'accepted'],
             'g-recaptcha-response' => ['sometimes', 'string', new GoogleRecaptchaRule()],
         ];
 
-        $messages =  [
+        $messages = [
             'g-recaptcha-response.required' => __('The Google recaptcha must be completed'),
             'g-recaptcha-response.string' => __('The google recaptcha was submitted with an invalid type'),
         ];
