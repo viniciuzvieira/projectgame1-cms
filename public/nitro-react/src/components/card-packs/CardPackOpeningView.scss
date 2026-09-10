@@ -85,6 +85,37 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
+    clip-path: polygon(
+        0 43px,
+        3.85% 46px,
+        7.69% 41px,
+        11.54% 45px,
+        15.38% 40px,
+        19.23% 47px,
+        23.08% 43px,
+        26.92% 48px,
+        30.77% 41px,
+        34.62% 45px,
+        38.46% 42px,
+        42.31% 49px,
+        46.15% 43px,
+        50% 46px,
+        53.85% 40px,
+        57.69% 44px,
+        61.54% 42px,
+        65.38% 47px,
+        69.23% 41px,
+        73.08% 46px,
+        76.92% 43px,
+        80.77% 48px,
+        84.62% 42px,
+        88.46% 45px,
+        92.31% 41px,
+        96.15% 44px,
+        100% 43px,
+        100% 100%,
+        0 100%
+    );
     border: 3px solid #122437;
     border-radius: 4px 4px 9px 9px;
     background:
