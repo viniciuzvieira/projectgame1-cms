@@ -199,18 +199,6 @@
     }
 }
 
-.card-pack-seam {
-    position: absolute;
-    z-index: 7;
-    top: 41px;
-    right: 0;
-    width: var(--tear-open);
-    height: 13px;
-    border: 2px solid #172332;
-    background: repeating-linear-gradient(135deg, #fff1b2 0 5px, #dd5427 5px 10px);
-    box-shadow: 0 3px 0 rgba(70, 14, 28, .45);
-}
-
 .card-pack-tear-strip {
     position: absolute;
     z-index: 9;
@@ -239,22 +227,39 @@
     width: 228px;
     height: 72px;
     overflow: visible;
-    filter: drop-shadow(2px 3px 0 rgba(70, 14, 28, .38));
     pointer-events: none;
 }
 
 .card-pack-rip-attached,
 .card-pack-rip-peeled-face {
     fill: url('#card-pack-tear-fill');
+}
+
+.card-pack-rip-attached-frame {
+    fill: none;
     stroke: #122437;
     stroke-width: 3px;
+    stroke-linecap: square;
     stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.card-pack-sealed-perforation {
+    fill: none;
+    stroke: #ffe077;
+    stroke-width: 2px;
+    stroke-dasharray: 7 5;
+    stroke-linecap: butt;
     vector-effect: non-scaling-stroke;
 }
 
 .card-pack-rip-peeled {
     transform-box: fill-box;
     transform-origin: center;
+
+    &.has-started {
+        filter: drop-shadow(2px 3px 0 rgba(70, 14, 28, .38));
+    }
 }
 
 .card-pack-rip-peeled-shadow {
@@ -264,6 +269,15 @@
 
 .card-pack-rip-peeled-face {
     fill: url('#card-pack-tear-fill');
+}
+
+.card-pack-rip-peeled-frame {
+    fill: none;
+    stroke: #122437;
+    stroke-width: 3px;
+    stroke-linecap: square;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
 }
 
 .card-pack-rip-artwork-rails {
@@ -301,6 +315,35 @@
     stroke-width: 2px;
     stroke-linecap: square;
     vector-effect: non-scaling-stroke;
+}
+
+.card-pack-ripped-opening {
+    position: absolute;
+    z-index: 7;
+    top: 0;
+    left: 0;
+    width: 205px;
+    height: 72px;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.card-pack-ripped-opening-shadow,
+.card-pack-ripped-opening-fiber {
+    fill: none;
+    stroke-linecap: square;
+    stroke-linejoin: bevel;
+    vector-effect: non-scaling-stroke;
+}
+
+.card-pack-ripped-opening-shadow {
+    stroke: #321421;
+    stroke-width: 8px;
+}
+
+.card-pack-ripped-opening-fiber {
+    stroke: #ffd98a;
+    stroke-width: 3px;
 }
 
 .card-pack-rip-label {
