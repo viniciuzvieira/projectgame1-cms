@@ -245,14 +245,11 @@
 
 .card-pack-rip-attached,
 .card-pack-rip-peeled-face {
+    fill: url('#card-pack-tear-fill');
     stroke: #122437;
     stroke-width: 3px;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
-}
-
-.card-pack-rip-attached {
-    fill: url('#card-pack-tear-fill');
 }
 
 .card-pack-rip-peeled {
@@ -266,7 +263,17 @@
 }
 
 .card-pack-rip-peeled-face {
+    fill: url('#card-pack-tear-fill');
+}
+
+.card-pack-rip-artwork-rails {
+    fill: url('#card-pack-tear-rails');
+    pointer-events: none;
+}
+
+.card-pack-rip-fold-shade {
     fill: url('#card-pack-tear-fold');
+    pointer-events: none;
 }
 
 .card-pack-rip-fiber {

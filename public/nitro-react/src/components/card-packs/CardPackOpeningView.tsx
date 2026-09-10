@@ -374,21 +374,40 @@ export const CardPackOpeningView: FC<{}> = props =>
                             onKeyDown={ onTearKeyDown }>
                             <svg className="card-pack-tear-surface" viewBox="0 0 228 72" preserveAspectRatio="none" aria-hidden="true">
                                 <defs>
-                                    <linearGradient id="card-pack-tear-fill" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0" stopColor="#f7cf55" />
-                                        <stop offset="0.7" stopColor="#e25a27" />
-                                        <stop offset="0.71" stopColor="#a5272a" />
-                                        <stop offset="1" stopColor="#8b202b" />
+                                    <linearGradient id="card-pack-tear-fill" gradientUnits="userSpaceOnUse" x1="2" y1="-1" x2="203" y2="286">
+                                        <stop offset="0" stopColor="#f8d65f" />
+                                        <stop offset="0.18" stopColor="#f8d65f" />
+                                        <stop offset="0.18" stopColor="#ef7728" />
+                                        <stop offset="0.38" stopColor="#ef7728" />
+                                        <stop offset="0.38" stopColor="#d73526" />
+                                        <stop offset="0.65" stopColor="#d73526" />
+                                        <stop offset="0.65" stopColor="#8e1f2b" />
+                                        <stop offset="1" stopColor="#8e1f2b" />
+                                    </linearGradient>
+                                    <linearGradient id="card-pack-tear-rails" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="205" y2="0">
+                                        <stop offset="0" stopColor="#fff" stopOpacity="0" />
+                                        <stop offset="0.12" stopColor="#fff" stopOpacity="0" />
+                                        <stop offset="0.12" stopColor="#fff" stopOpacity="0.16" />
+                                        <stop offset="0.17" stopColor="#fff" stopOpacity="0.16" />
+                                        <stop offset="0.17" stopColor="#fff" stopOpacity="0" />
+                                        <stop offset="0.82" stopColor="#000" stopOpacity="0" />
+                                        <stop offset="0.82" stopColor="#000" stopOpacity="0.18" />
+                                        <stop offset="0.88" stopColor="#000" stopOpacity="0.18" />
+                                        <stop offset="0.88" stopColor="#000" stopOpacity="0" />
+                                        <stop offset="1" stopColor="#000" stopOpacity="0" />
                                     </linearGradient>
                                     <linearGradient id="card-pack-tear-fold" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0" stopColor="#8b202b" />
-                                        <stop offset="0.45" stopColor="#f07a2c" />
-                                        <stop offset="1" stopColor="#ffd66b" />
+                                        <stop offset="0" stopColor="#3c1020" stopOpacity="0.12" />
+                                        <stop offset="0.48" stopColor="#521323" stopOpacity="0.72" />
+                                        <stop offset="1" stopColor="#fff0a0" stopOpacity="0.3" />
                                     </linearGradient>
                                 </defs>
 
                                 { attachedStripPath &&
-                                    <path className="card-pack-rip-attached" d={ attachedStripPath } /> }
+                                    <>
+                                        <path className="card-pack-rip-attached" d={ attachedStripPath } />
+                                        <path className="card-pack-rip-artwork-rails" d={ attachedStripPath } />
+                                    </> }
                                 { attachedEdgePath &&
                                     <>
                                         <path className="card-pack-rip-fiber" d={ attachedEdgePath } />
@@ -398,6 +417,8 @@ export const CardPackOpeningView: FC<{}> = props =>
                                 <g className="card-pack-rip-peeled">
                                     <path className="card-pack-rip-peeled-shadow" d={ peeledStripPath } />
                                     <path className="card-pack-rip-peeled-face" d={ peeledStripPath } />
+                                    <path className="card-pack-rip-artwork-rails" d={ peeledStripPath } />
+                                    <path className="card-pack-rip-fold-shade" d={ peeledStripPath } style={ { opacity: tearProgress * 0.72 } } />
                                     { peeledEdgePath &&
                                         <>
                                             <path className="card-pack-rip-fiber" d={ peeledEdgePath } />
