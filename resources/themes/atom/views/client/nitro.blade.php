@@ -231,6 +231,11 @@
 <script>
     window.addEventListener('DOMContentLoaded', () => {
         const ENABLE_PING_TERMINAL = false;
+        const hasActiveGameSession = @json(request()->filled('sso'));
+
+        if (!hasActiveGameSession) {
+            return;
+        }
 
         if (ENABLE_PING_TERMINAL) {
             KBTerminalPopup.init({

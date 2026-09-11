@@ -31,6 +31,7 @@ import {
 
 interface RegisterCharacterViewProps {
     statusMessage: string;
+    isSubmitting: boolean;
     onRegister: (data: {
         username: string;
         email: string;
@@ -40,7 +41,7 @@ interface RegisterCharacterViewProps {
         race: string;
         className: string;
         look: string;
-    }) => void;
+    }) => void | Promise<void>;
     onGoLogin: () => void;
 }
 
@@ -161,7 +162,12 @@ const cloneFigureData = (source: FigureData, gender: string): FigureData => {
 export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
     props,
 ) => {
-    const { statusMessage = "", onRegister, onGoLogin } = props;
+    const {
+        statusMessage = "",
+        isSubmitting = false,
+        onRegister,
+        onGoLogin,
+    } = props;
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -1044,6 +1050,32 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
                     </FormGroup>
 
                     <FormGroup column>
+                        <label className="form-label">Senha</label>
+                        <input
+                            type="password"
+                            className="form-control form-control-sm"
+                            value={password}
+                            autoComplete="new-password"
+                            onChange={(event) =>
+                                setPassword(event.target.value)
+                            }
+                        />
+                    </FormGroup>
+
+                    <FormGroup column>
+                        <label className="form-label">Confirmar senha</label>
+                        <input
+                            type="password"
+                            className="form-control form-control-sm"
+                            value={passwordConfirm}
+                            autoComplete="new-password"
+                            onChange={(event) =>
+                                setPasswordConfirm(event.target.value)
+                            }
+                        />
+                    </FormGroup>
+
+                    <FormGroup column>
                         <label className="form-label">Sexo</label>
                         <select
                             className="form-select form-select-sm"
@@ -1079,10 +1111,18 @@ export const RegisterCharacterView: FC<RegisterCharacterViewProps> = (
             {statusNode}
 
             <Flex gap={2} className="guest-auth-register-character-actions">
-                <Button variant="success" onClick={handleRegister}>
-                    Criar conta
+                <Button
+                    variant="success"
+                    disabled={isSubmitting}
+                    onClick={handleRegister}
+                >
+                    {isSubmitting ? "Criando conta..." : "Criar conta"}
                 </Button>
-                <Button variant="secondary" onClick={onGoLogin}>
+                <Button
+                    variant="secondary"
+                    disabled={isSubmitting}
+                    onClick={onGoLogin}
+                >
                     Voltar para login
                 </Button>
             </Flex>

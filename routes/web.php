@@ -51,6 +51,11 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
         ->withoutMiddleware('force.staff.2fa')
         ->name('api.game.login');
 
+    Route::post('/api/game/register', [GameAuthController::class, 'register'])
+        ->middleware('throttle:5,1')
+        ->withoutMiddleware('force.staff.2fa')
+        ->name('api.game.register');
+
     Route::get('/auth/steam/redirect', [SteamAuthController::class, 'redirect'])
         ->withoutMiddleware('force.staff.2fa')
         ->name('steam.redirect');

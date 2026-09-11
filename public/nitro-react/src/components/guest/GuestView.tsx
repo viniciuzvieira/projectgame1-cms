@@ -4,11 +4,10 @@ import {
     DraggableWindowPosition,
     NitroCardContentView,
     NitroCardHeaderView,
-    NitroCardTabsItemView,
-    NitroCardTabsView,
     NitroCardView,
 } from "../../common";
 import { GameLogin } from "./GameLogin";
+import { GameRegister, GameRegisterRequest } from "./GameRegister";
 import { LoginView } from "./LoginView";
 import { RegisterCharacterView } from "./RegisterCharacterView";
 import "./GuestView.scss";
@@ -16,6 +15,7 @@ import "./GuestView.scss";
 export const GuestView: FC<{}> = () => {
     const [loginStatusMessage, setLoginStatusMessage] = useState("");
     const [registerStatusMessage, setRegisterStatusMessage] = useState("");
+    const [isRegisterSubmitting, setIsRegisterSubmitting] = useState(false);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
     const uniqueKey = useMemo(() => {
@@ -61,18 +61,44 @@ export const GuestView: FC<{}> = () => {
         [],
     );
 
-    const onRegisterPlaceholder = useCallback(
-        (data: {
-            username: string;
-            email: string;
-            password: string;
-            passwordConfirm: string;
-            gender: string;
-            race: string;
-            className: string;
-            look: string;
-        }) => {
-            setRegisterStatusMessage("Cadastro será ligado na próxima fase.");
+    const onRegister = useCallback(
+        async (data: GameRegisterRequest) => {
+            setRegisterStatusMessage("");
+
+            if (
+                !data.username ||
+                !data.email ||
+                !data.password ||
+                !data.passwordConfirm
+            ) {
+                setRegisterStatusMessage("Preencha os dados da conta.");
+                return;
+            }
+
+            if (data.password !== data.passwordConfirm) {
+                setRegisterStatusMessage("As senhas não coincidem.");
+                return;
+            }
+
+            setIsRegisterSubmitting(true);
+            setRegisterStatusMessage("Criando sua conta...");
+
+            try {
+                const response = await GameRegister(data);
+
+                if (!response.success || !response.sso) {
+                    setRegisterStatusMessage(
+                        response.message || "Não foi possível criar a conta.",
+                    );
+                    return;
+                }
+
+                window.location.href = `/game/nitro?sso=${encodeURIComponent(response.sso)}`;
+            } catch {
+                setRegisterStatusMessage("Erro ao tentar criar a conta.");
+            } finally {
+                setIsRegisterSubmitting(false);
+            }
         },
         [],
     );
@@ -94,38 +120,83 @@ export const GuestView: FC<{}> = () => {
             >
                 <NitroCardHeaderView
                     headerText={
-                        isRegisterOpen ? "Criar Conta" : "Entrar no Hotel"
+                        isRegisterOpen
+                            ? "Criação de Personagem"
+                            : "Central de Acesso"
                     }
+                    noCloseButton={!isRegisterOpen}
                     onCloseClick={isRegisterOpen ? onCloseRegister : () => null}
                 />
-                <NitroCardTabsView>
-                    <NitroCardTabsItemView
-                        isActive={!isRegisterOpen}
-                        onClick={onCloseRegister}
-                    >
-                        Entrar
-                    </NitroCardTabsItemView>
-                    <NitroCardTabsItemView
-                        isActive={isRegisterOpen}
-                        onClick={onOpenRegister}
-                    >
-                        Cadastrar
-                    </NitroCardTabsItemView>
-                </NitroCardTabsView>
+                <div className="guest-auth-console-bar">
+                    <div className="guest-auth-console-emblem" aria-hidden="true">
+                        <span />
+                    </div>
+                    <div className="guest-auth-console-heading">
+                        <span>
+                            {isRegisterOpen
+                                ? "PROTOCOLO DE RECRUTAMENTO"
+                                : "REDE CYBER HEROIC"}
+                        </span>
+                        <strong>
+                            {isRegisterOpen
+                                ? "FORJE SEU HERÓI"
+                                : "PORTAL DO HOTEL"}
+                        </strong>
+                    </div>
+                    <div className="guest-auth-console-status">
+                        <i aria-hidden="true" />
+                        {isRegisterOpen ? "MODO CRIAÇÃO" : "SISTEMA ONLINE"}
+                    </div>
+                    {isRegisterOpen && (
+                        <button
+                            type="button"
+                            className="guest-auth-console-back"
+                            onClick={onCloseRegister}
+                        >
+                            <span aria-hidden="true">&#8592;</span>
+                            Voltar ao acesso
+                        </button>
+                    )}
+                </div>
                 <NitroCardContentView className="guest-auth-content">
                     {!isRegisterOpen && (
-                        <LoginView
-                            statusMessage={loginStatusMessage}
-                            onLogin={onLogin}
-                            onSteam={onSteam}
-                            onGoRegister={onOpenRegister}
-                        />
+                        <div className="guest-auth-login-layout">
+                            <aside className="guest-auth-login-welcome">
+                                <span className="guest-auth-login-kicker">
+                                    NOVA TRANSMISSÃO
+                                </span>
+                                <div
+                                    className="guest-auth-login-sigil"
+                                    aria-hidden="true"
+                                >
+                                    <span />
+                                </div>
+                                <h1>Seu próximo capítulo começa aqui.</h1>
+                                <p>
+                                    Entre no hotel, encontre sua equipe e construa
+                                    sua história nesse universo.
+                                </p>
+                                <div className="guest-auth-login-signal">
+                                    <span>CONEXÃO</span>
+                                    <b>ESTÁVEL</b>
+                                </div>
+                            </aside>
+                            <div className="guest-auth-login-panel">
+                                <LoginView
+                                    statusMessage={loginStatusMessage}
+                                    onLogin={onLogin}
+                                    onSteam={onSteam}
+                                    onGoRegister={onOpenRegister}
+                                />
+                            </div>
+                        </div>
                     )}
 
                     {isRegisterOpen && (
                         <RegisterCharacterView
                             statusMessage={registerStatusMessage}
-                            onRegister={onRegisterPlaceholder}
+                            isSubmitting={isRegisterSubmitting}
+                            onRegister={onRegister}
                             onGoLogin={onCloseRegister}
                         />
                     )}
