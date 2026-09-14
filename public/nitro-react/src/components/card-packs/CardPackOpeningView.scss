@@ -76,128 +76,135 @@
 }
 
 .card-pack-shell {
+    --card-pack-frame-color: #122437;
+    --card-pack-inner-frame-color: #ffd977;
+    --card-pack-inner-shadow-color: rgba(80, 13, 27, .42);
+    --card-pack-color-yellow: #f8d65f;
+    --card-pack-color-orange: #ef7728;
+    --card-pack-color-red: #d73526;
+    --card-pack-color-deep-red: #8e1f2b;
+
     z-index: 5;
     filter: drop-shadow(7px 9px 0 rgba(42, 55, 67, .28));
     transition: opacity .18s linear;
 }
 
-.card-pack-body {
+.card-pack-artwork-surface {
     position: absolute;
     inset: 0;
-    overflow: hidden;
-    clip-path: polygon(
-        0 43px,
-        3.85% 46px,
-        7.69% 41px,
-        11.54% 45px,
-        15.38% 40px,
-        19.23% 47px,
-        23.08% 43px,
-        26.92% 48px,
-        30.77% 41px,
-        34.62% 45px,
-        38.46% 42px,
-        42.31% 49px,
-        46.15% 43px,
-        50% 46px,
-        53.85% 40px,
-        57.69% 44px,
-        61.54% 42px,
-        65.38% 47px,
-        69.23% 41px,
-        73.08% 46px,
-        76.92% 43px,
-        80.77% 48px,
-        84.62% 42px,
-        88.46% 45px,
-        92.31% 41px,
-        96.15% 44px,
-        100% 43px,
-        100% 100%,
-        0 100%
-    );
-    border: 3px solid #122437;
-    border-radius: 4px 4px 9px 9px;
-    background:
-        linear-gradient(90deg, transparent 0 12%, rgba(255, 255, 255, .16) 12% 17%, transparent 17% 82%, rgba(0, 0, 0, .18) 82% 88%, transparent 88%),
-        linear-gradient(145deg, #f8d65f 0 18%, #ef7728 18% 38%, #d73526 38% 65%, #8e1f2b 65% 100%);
-    background-origin: border-box;
-    box-shadow:
-        inset 0 0 0 2px #ffd977,
-        inset 0 0 0 5px rgba(80, 13, 27, .42),
-        inset 0 -17px #64192a;
+    display: block;
+    width: 205px;
+    height: 285px;
+    overflow: visible;
+    pointer-events: none;
 }
 
-.card-pack-body::after {
-    position: absolute;
-    right: 9px;
-    bottom: 7px;
-    left: 9px;
-    height: 6px;
-    border-top: 2px dashed #d88d46;
-    content: '';
+.card-pack-master-shine {
+    fill: rgba(255, 238, 169, .13);
 }
 
-.card-pack-shine {
-    position: absolute;
-    top: 30px;
-    right: -26px;
-    width: 92px;
-    height: 260px;
-    transform: rotate(19deg);
-    background: rgba(255, 238, 169, .13);
+.card-pack-master-bottom {
+    fill: #64192a;
 }
 
-.card-pack-kicker,
-.card-pack-logo,
-.card-pack-count {
-    position: absolute;
-    right: 0;
-    left: 0;
-    color: #fff4c9;
-    text-align: center;
-    text-shadow: 2px 2px #5b1723, -1px -1px #5b1723, 1px -1px #5b1723, -1px 1px #5b1723;
+.card-pack-master-left-fold {
+    fill: rgba(255, 238, 169, .28);
 }
 
-.card-pack-kicker {
-    top: 57px;
+.card-pack-master-right-fold {
+    fill: rgba(55, 8, 22, .3);
+}
+
+.card-pack-master-top-crimp,
+.card-pack-master-bottom-crimp {
+    fill: none;
+    stroke-linecap: square;
+    vector-effect: non-scaling-stroke;
+}
+
+.card-pack-master-top-crimp {
+    stroke: rgba(102, 28, 30, .2);
+    stroke-width: 2px;
+}
+
+.card-pack-master-bottom-crimp {
+    stroke: rgba(255, 207, 94, .28);
+    stroke-width: 2px;
+}
+
+.card-pack-master-copy {
+    fill: #fff4c9;
+    stroke: #5b1723;
+    stroke-linejoin: round;
+    text-anchor: middle;
+    paint-order: stroke;
+}
+
+.card-pack-master-kicker {
+    stroke-width: 2px;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: .8px;
 }
 
-.card-pack-logo {
-    top: 78px;
+.card-pack-master-logo {
+    stroke-width: 3px;
     font-size: 27px;
     font-weight: 900;
-    line-height: 24px;
     letter-spacing: -1px;
 }
 
-.card-pack-count {
-    bottom: 28px;
+.card-pack-master-count {
+    stroke-width: 2px;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: .7px;
 }
 
-.card-pack-emblem {
-    position: absolute;
-    top: 143px;
-    left: 73px;
-    width: 59px;
-    height: 59px;
-    transform: rotate(45deg);
-    border: 4px solid #3e1320;
-    background: #ffd75d;
-    box-shadow: inset 0 0 0 4px #ef6e24, 4px 4px 0 rgba(67, 12, 26, .5);
+.card-pack-master-emblem-shadow {
+    fill: rgba(67, 12, 26, .5);
+}
 
-    span {
-        position: absolute;
-        inset: 14px;
-        border: 4px solid #7a2030;
-        background: #fff0a1;
-    }
+.card-pack-master-emblem-outer {
+    fill: #ffd75d;
+    stroke: #3e1320;
+    stroke-width: 4px;
+}
+
+.card-pack-master-emblem-inner {
+    fill: #fff0a1;
+    stroke: #7a2030;
+    stroke-width: 4px;
+}
+
+.card-pack-master-outer-frame,
+.card-pack-master-inner-frame,
+.card-pack-master-shadow-frame,
+.card-pack-master-bottom-stitch {
+    fill: none;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.card-pack-master-outer-frame {
+    stroke: var(--card-pack-frame-color);
+    stroke-width: 3px;
+}
+
+.card-pack-master-inner-frame {
+    stroke: var(--card-pack-inner-frame-color);
+    stroke-width: 2px;
+}
+
+.card-pack-master-shadow-frame {
+    stroke: var(--card-pack-inner-shadow-color);
+    stroke-width: 3px;
+}
+
+.card-pack-master-bottom-stitch {
+    stroke: #d88d46;
+    stroke-width: 2px;
+    stroke-dasharray: 7 5;
 }
 
 .card-pack-tear-strip {
@@ -223,32 +230,6 @@
     }
 }
 
-.card-pack-tear-surface {
-    display: block;
-    width: 205px;
-    height: 72px;
-    overflow: visible;
-    pointer-events: none;
-}
-
-.card-pack-rip-attached,
-.card-pack-rip-peeled-face {
-    fill: #f8d65f;
-}
-
-.card-pack-rip-attached-frame {
-    fill: none;
-    stroke: #122437;
-    stroke-width: 3px;
-    stroke-linecap: square;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-}
-
-.card-pack-rip-sealed-right-frame {
-    stroke-width: 2px;
-}
-
 .card-pack-sealed-perforation {
     fill: none;
     stroke: #ffe077;
@@ -258,83 +239,35 @@
     vector-effect: non-scaling-stroke;
 }
 
-.card-pack-rip-peeled {
-    transform-box: fill-box;
-    transform-origin: center;
-}
-
-.card-pack-rip-peeled-face {
-    fill: #f8d65f;
-}
-
-.card-pack-rip-artwork-orange {
-    fill: #ef7728;
-}
-
-.card-pack-rip-artwork-red {
-    fill: #d73526;
-}
-
-.card-pack-rip-peeled-frame {
+.card-pack-torn-lower-shadow,
+.card-pack-torn-lower-fiber,
+.card-pack-torn-upper-fiber,
+.card-pack-torn-upper-detail {
     fill: none;
-    stroke: #122437;
-    stroke-width: 3px;
-    stroke-linecap: square;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-}
-
-.card-pack-rip-artwork-rails {
-    fill: url('#card-pack-tear-rails');
-    pointer-events: none;
-}
-
-.card-pack-rip-fiber {
-    fill: none;
-    stroke: url('#card-pack-tear-fiber');
-    stroke-width: 6px;
     stroke-linecap: butt;
     stroke-linejoin: bevel;
     vector-effect: non-scaling-stroke;
 }
 
-.card-pack-rip-perforation {
-    fill: none;
-    stroke: #7a2030;
-    stroke-width: 2px;
-    stroke-dasharray: 5 4;
-    stroke-linecap: square;
-    stroke-linejoin: bevel;
-    vector-effect: non-scaling-stroke;
-}
-
-.card-pack-ripped-opening {
-    position: absolute;
-    z-index: 7;
-    top: 0;
-    left: 0;
-    width: 205px;
-    height: 72px;
-    overflow: visible;
-    pointer-events: none;
-}
-
-.card-pack-ripped-opening-shadow,
-.card-pack-ripped-opening-fiber {
-    fill: none;
-    stroke-linecap: square;
-    stroke-linejoin: bevel;
-    vector-effect: non-scaling-stroke;
-}
-
-.card-pack-ripped-opening-shadow {
+.card-pack-torn-lower-shadow {
     stroke: #321421;
-    stroke-width: 8px;
+    stroke-width: 3px;
 }
 
-.card-pack-ripped-opening-fiber {
+.card-pack-torn-lower-fiber {
     stroke: #ffd98a;
-    stroke-width: 3px;
+    stroke-width: 1px;
+}
+
+.card-pack-torn-upper-fiber {
+    stroke: #fff0b0;
+    stroke-width: 2px;
+}
+
+.card-pack-torn-upper-detail {
+    stroke: #7a2030;
+    stroke-width: 1px;
+    stroke-dasharray: 5 4;
 }
 
 .card-pack-reward {
@@ -457,11 +390,7 @@
 
 .phase-opening {
     .card-pack-shell {
-        animation: card-pack-drop .58s steps(6, end) forwards;
-    }
-
-    .card-pack-rip-peeled {
-        animation: card-pack-tear-away .5s steps(6, end) forwards;
+        animation: card-pack-rise-away .48s .14s steps(6, end) forwards;
     }
 }
 
@@ -478,21 +407,14 @@
     }
 }
 
-@keyframes card-pack-tear-away {
-    to {
-        transform: translate(0, -92px) rotate(-6deg);
-        opacity: 0;
-    }
-}
-
-@keyframes card-pack-drop {
-    55% {
-        transform: translateX(-50%) translateY(25px) rotate(2deg);
+@keyframes card-pack-rise-away {
+    35% {
+        transform: translateX(-50%) translateY(-10px) rotate(-1deg);
         opacity: 1;
     }
 
     to {
-        transform: translateX(-50%) translateY(70px) rotate(-4deg);
+        transform: translateX(-50%) translateY(-68px) rotate(2deg);
         opacity: 0;
     }
 }
@@ -564,7 +486,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .card-pack-shell,
-    .card-pack-rip-peeled,
+    .card-pack-finished-top,
     .card-pack-reward {
         animation-duration: .01ms !important;
         transition-duration: .01ms !important;

@@ -3,6 +3,7 @@ import { FC, KeyboardEvent, PointerEvent as ReactPointerEvent, useCallback, useE
 import { AddEventLinkTracker, RemoveLinkEventTracker } from '../../api';
 import { Button, LayoutAvatarImageView, LayoutPixelLoadingView, NitroCardContentView, NitroCardHeaderView, NitroCardView } from '../../common';
 import { useSessionInfo } from '../../hooks';
+import { bendPackagePath, getPackageColorBand, PACK_HEIGHT, PACK_WIDTH } from './CardPackGeometry';
 
 type PackOpeningPhase = 'sealed' | 'tearing' | 'opening' | 'revealed';
 
@@ -23,9 +24,7 @@ interface TearPoint
 const DRAG_DISTANCE = 165;
 const OPEN_THRESHOLD = 0.68;
 const REVEAL_DELAY = 650;
-const PACK_WIDTH = 205;
-const TEAR_CANVAS_WIDTH = PACK_WIDTH;
-const PACK_FRAME_INSET = 1.5;
+const PERFORATION_INSET = 11;
 const TEAR_EDGE_Y = [ 43, 46, 41, 45, 40, 47, 43, 48, 41, 45, 42, 49, 43, 46, 40, 44, 42, 47, 41, 46, 43, 48, 42, 45, 41, 44, 43 ];
 
 const roundPointValue = (value: number): number => Math.round(value * 10) / 10;
@@ -57,100 +56,130 @@ const getEdgePoints = (startX: number, endX: number): TearPoint[] =>
     return points;
 }
 
-const getSpanPoints = (startX: number, endX: number, y: number, segments = 14): TearPoint[] =>
-{
-    const points: TearPoint[] = [];
+const pointsToPath = (points: TearPoint[]): string => points
+    .map((point, index) => `${ index ? 'L' : 'M' } ${ roundPointValue(point.x) } ${ roundPointValue(point.y) }`)
+    .join(' ');
 
-    for(let index = 0; index <= segments; index++)
+const getSerratedEdge = (startX: number, endX: number, baseY: number, tipY: number, toothWidth = 7): string[] =>
+{
+    const direction = Math.sign(endX - startX);
+    const distance = Math.abs(endX - startX);
+    const toothCount = Math.max(1, Math.round(distance / toothWidth));
+    const step = distance / toothCount;
+    const points: string[] = [];
+
+    for(let index = 0; index < toothCount; index++)
     {
-        points.push({ x: startX + (((endX - startX) * index) / segments), y });
+        const midpoint = startX + (direction * step * (index + 0.5));
+        const endpoint = startX + (direction * step * (index + 1));
+
+        points.push(`L ${ roundPointValue(midpoint) } ${ roundPointValue(tipY) }`);
+        points.push(`L ${ roundPointValue(endpoint) } ${ roundPointValue(baseY) }`);
     }
 
     return points;
 }
 
-const warpPeeledPoint = (point: TearPoint, tearFront: number, progress: number): TearPoint =>
+const getPackageOutlinePath = (inset: number): string =>
 {
-    if((progress <= 0) || (point.x <= tearFront)) return point;
+    const sealLeft = 4 + inset;
+    const sealRight = PACK_WIDTH - 4 - inset;
+    const bodyLeft = 9 + inset;
+    const bodyRight = PACK_WIDTH - 9 - inset;
+    const top = 2 + inset;
+    const bottom = PACK_HEIGHT - 2 - inset;
+    const toothDepth = Math.max(1, 3 - (inset * 0.25));
+    const topBase = top + toothDepth;
+    const bottomBase = bottom - toothDepth;
+    const upperShoulder = 37 + (inset * 0.35);
+    const bodyTop = 44 + (inset * 0.2);
+    const bodyBottom = 241 - (inset * 0.2);
+    const lowerShoulder = 248 - (inset * 0.35);
 
-    const freeWidth = Math.max(1, TEAR_CANVAS_WIDTH - tearFront);
-    const amount = Math.max(0, Math.min(1, (point.x - tearFront) / freeWidth));
-    const smoothAmount = amount * amount * (3 - (2 * amount));
-    const rightTipAmount = Math.pow(amount, 2.25);
-
-    return {
-        x: point.x,
-        // Keep the tear line anchored while the free right tip bends upward.
-        y: point.y - (progress * ((4 * smoothAmount) + (34 * rightTipAmount)))
-    };
+    return [
+        `M ${ roundPointValue(sealLeft) } ${ roundPointValue(topBase) }`,
+        ...getSerratedEdge(sealLeft, sealRight, topBase, top),
+        `L ${ roundPointValue(sealRight) } ${ roundPointValue(upperShoulder) }`,
+        `L ${ roundPointValue(bodyRight) } ${ roundPointValue(bodyTop) }`,
+        `C ${ roundPointValue(bodyRight - 2) } 92 ${ roundPointValue(bodyRight - 1) } 201 ${ roundPointValue(bodyRight) } ${ roundPointValue(bodyBottom) }`,
+        `L ${ roundPointValue(sealRight) } ${ roundPointValue(lowerShoulder) }`,
+        `L ${ roundPointValue(sealRight) } ${ roundPointValue(bottomBase) }`,
+        ...getSerratedEdge(sealRight, sealLeft, bottomBase, bottom),
+        `L ${ roundPointValue(sealLeft) } ${ roundPointValue(lowerShoulder) }`,
+        `L ${ roundPointValue(bodyLeft) } ${ roundPointValue(bodyBottom) }`,
+        `C ${ roundPointValue(bodyLeft + 2) } 201 ${ roundPointValue(bodyLeft + 1) } 92 ${ roundPointValue(bodyLeft) } ${ roundPointValue(bodyTop) }`,
+        `L ${ roundPointValue(sealLeft) } ${ roundPointValue(upperShoulder) } Z`
+    ].join(' ');
 }
 
-const pointsToPath = (points: TearPoint[]): string => points
-    .map((point, index) => `${ index ? 'L' : 'M' } ${ roundPointValue(point.x) } ${ roundPointValue(point.y) }`)
-    .join(' ');
-
-const getStripPath = (tearFront: number, progress: number): string =>
+const getEdgePath = (startX: number, endX: number, offsetY = 0): string =>
 {
-    const warp = (point: TearPoint) => warpPeeledPoint(point, tearFront, progress);
-    const topEdge = [
-        ...getSpanPoints(0, PACK_WIDTH, 0, 28),
-        { x: tearFront, y: 0 }
-    ]
-        .sort((first, second) => first.x - second.x)
-        .map(warp);
-    const tornEdge = [
+    return pointsToPath(getEdgePoints(startX, endX).map(point => ({ ...point, y: point.y + offsetY })));
+}
+
+const getTopClipPath = (): string =>
+{
+    const points = getEdgePoints(0, PACK_WIDTH).reverse();
+
+    return `M 0 -8 H ${ PACK_WIDTH } L ${ roundPointValue(points[0].x) } ${ roundPointValue(points[0].y) } ${ points.slice(1).map(point => `L ${ roundPointValue(point.x) } ${ roundPointValue(point.y) }`).join(' ') } Z`;
+}
+
+const getBodyClipPath = (tearFront: number): string =>
+{
+    // Overlap only the attached tear edge, so antialiasing cannot expose a seam.
+    const blendStart = Math.max(0, tearFront - 2);
+    const points = [
         ...getEdgePoints(0, PACK_WIDTH),
+        { x: blendStart, y: getTearEdgeY(blendStart) },
         { x: tearFront, y: getTearEdgeY(tearFront) }
     ]
-        .sort((first, second) => second.x - first.x)
-        .map(warp);
-
-    return `${ pointsToPath([ ...topEdge, ...tornEdge ]) } Z`;
-}
-
-const getStripFramePath = (tearFront: number, progress: number): string =>
-{
-    const warp = (point: TearPoint) => warpPeeledPoint(point, tearFront, progress);
-    const frameRight = PACK_WIDTH - PACK_FRAME_INSET;
-    const topEdge = [
-        ...getSpanPoints(PACK_FRAME_INSET, frameRight, PACK_FRAME_INSET, 28),
-        { x: Math.max(PACK_FRAME_INSET, Math.min(frameRight, tearFront)), y: PACK_FRAME_INSET }
-    ]
         .sort((first, second) => first.x - second.x)
-        .map(warp);
-    const leftEdge = { x: PACK_FRAME_INSET, y: getTearEdgeY(0) };
-    const rightEdge = warp({ x: frameRight, y: getTearEdgeY(frameRight) });
+        .map(point => ({ ...point, y: point.y - Math.max(0, Math.min(1, (tearFront - point.x) / 2)) }));
 
-    return pointsToPath([ leftEdge, ...topEdge, rightEdge ]);
+    return `${ pointsToPath(points) } L ${ PACK_WIDTH } ${ PACK_HEIGHT } L 0 ${ PACK_HEIGHT } Z`;
 }
 
-const getEdgePath = (startX: number, endX: number, tearFront: number, progress: number, warped: boolean): string =>
+const renderPackageArtwork = (id: string, progress = 0) =>
 {
-    const points = getEdgePoints(startX, endX).map(point => warped ? warpPeeledPoint(point, tearFront, progress) : point);
+    const path = (d: string) => bendPackagePath(d, progress);
 
-    return pointsToPath(points);
-}
+    return <g id={ id }>
+        <defs>
+            <clipPath id={ `${ id }-outline` } clipPathUnits="userSpaceOnUse">
+                <path d={ path(getPackageOutlinePath(0)) } />
+            </clipPath>
+        </defs>
+        <g clipPath={ `url(#${ id }-outline)` }>
+            <path d={ path(`M 0 0 H ${ PACK_WIDTH } V ${ PACK_HEIGHT } H 0 Z`) } fill="var(--card-pack-color-yellow)" />
+            <path d={ path(getPackageColorBand(0.18)) } fill="var(--card-pack-color-orange)" />
+            <path d={ path(getPackageColorBand(0.38)) } fill="var(--card-pack-color-red)" />
+            <path d={ path(getPackageColorBand(0.65)) } fill="var(--card-pack-color-deep-red)" />
+            <path d={ path('M 24.6 0 H 34.85 V 285 H 24.6 Z') } fill="#fff" fillOpacity="0.16" />
+            <path d={ path('M 168.1 0 H 180.4 V 285 H 168.1 Z') } fill="#000" fillOpacity="0.18" />
+            <path className="card-pack-master-shine" d={ path('M 144 -20 L 226 -20 L 166 305 L 103 305 Z') } />
+            <path className="card-pack-master-bottom" d={ path('M 0 268 H 205 V 285 H 0 Z') } />
+            <path className="card-pack-master-left-fold" d={ path('M 4 37 L 9 44 C 7 99 7 193 9 241 L 4 248 Z') } />
+            <path className="card-pack-master-right-fold" d={ path('M 201 37 L 196 44 C 198 99 198 193 196 241 L 201 248 Z') } />
+            <path className="card-pack-master-top-crimp" d={ path('M 6 9 H 199 M 6 14 H 199 M 6 19 H 199 M 6 24 H 199 M 6 29 H 199 M 6 34 H 199') } />
+            <path className="card-pack-master-bottom-crimp" d={ path('M 6 268 H 199 M 6 273 H 199 M 6 278 H 199') } />
+        </g>
 
-const getArtworkBandPath = (topX: number, bottomX: number, tearFront: number, progress: number, warped: boolean): string =>
-{
-    const topY = -4;
-    const bottomY = 76;
-    const points: TearPoint[] = [];
-    const segments = 14;
-
-    for(let index = 0; index <= segments; index++)
-    {
-        const amount = index / segments;
-        points.push({
-            x: topX + ((bottomX - topX) * amount),
-            y: topY + ((bottomY - topY) * amount)
-        });
-    }
-
-    points.push({ x: TEAR_CANVAS_WIDTH, y: bottomY });
-    points.push({ x: TEAR_CANVAS_WIDTH, y: topY });
-
-    return `${ pointsToPath(points.map(point => warped ? warpPeeledPoint(point, tearFront, progress) : point)) } Z`;
+        { progress === 0 && <>
+            <g className="card-pack-master-emblem" transform="rotate(45 102.5 172.5)">
+                <rect className="card-pack-master-emblem-shadow" x="77" y="147" width="59" height="59" />
+                <rect className="card-pack-master-emblem-outer" x="73" y="143" width="59" height="59" />
+                <rect className="card-pack-master-emblem-inner" x="87" y="157" width="31" height="31" />
+            </g>
+            <text className="card-pack-master-copy card-pack-master-kicker" x="102.5" y="67">EDICAO FUNDADORES</text>
+            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="101">CYBER</text>
+            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="125">HEROIC</text>
+            <text className="card-pack-master-copy card-pack-master-count" x="102.5" y="258">CONTEM 1 CARD</text>
+        </> }
+        <path className="card-pack-master-bottom-stitch" d={ path('M 10 276 H 195') } />
+        <path className="card-pack-master-shadow-frame" d={ path(getPackageOutlinePath(6.5)) } />
+        <path className="card-pack-master-inner-frame" d={ path(getPackageOutlinePath(4)) } />
+        <path className="card-pack-master-outer-frame" d={ path(getPackageOutlinePath(1.5)) } />
+    </g>;
 }
 
 export const CardPackOpeningView: FC<{}> = props =>
@@ -348,13 +377,15 @@ export const CardPackOpeningView: FC<{}> = props =>
     if(!isVisible) return null;
 
     const tearFront = PACK_WIDTH * (1 - tearProgress);
-    const stripPath = getStripPath(tearFront, tearProgress);
-    const stripFramePath = getStripFramePath(tearFront, tearProgress);
-    const stripOrangeArtworkPath = getArtworkBandPath(116.25, 2, tearFront, tearProgress, true);
-    const stripRedArtworkPath = getArtworkBandPath(238.4, 124.15, tearFront, tearProgress, true);
-    const peeledEdgePath = getEdgePath(tearFront, PACK_WIDTH, tearFront, tearProgress, true);
-    const openingEdgePath = getEdgePath(tearFront, PACK_WIDTH, tearFront, tearProgress, false);
-    const sealedPerforationPath = `M 2 43 L ${ roundPointValue(Math.max(2, tearFront)) } 43`;
+    const liftedTopClipPath = bendPackagePath(getTopClipPath(), tearProgress);
+    const finishedBodyClipPath = getBodyClipPath(tearFront);
+    // Keep the torn-edge pattern anchored to the package while a moving clip reveals it.
+    const tornEdgePath = getEdgePath(0, PACK_WIDTH);
+    const tornUpperEdgePath = bendPackagePath(tornEdgePath, tearProgress);
+    const edgeClipStart = Math.max(0, tearFront);
+    const edgeClipWidth = Math.max(0, PACK_WIDTH - edgeClipStart);
+    const perforationEnd = Math.max(PERFORATION_INSET, Math.min(PACK_WIDTH - PERFORATION_INSET, tearFront));
+    const sealedPerforationPath = `M ${ PERFORATION_INSET } 43 L ${ roundPointValue(perforationEnd) } 43`;
 
     return (
         <NitroCardView uniqueKey="card-pack-opening" className="nitro-card-pack-opening" theme="primary-slim">
@@ -385,20 +416,44 @@ export const CardPackOpeningView: FC<{}> = props =>
                     </div>
 
                     <div className="card-pack-shell" aria-hidden={ phase === 'revealed' }>
-                        { (tearProgress > 0.01) && openingEdgePath &&
-                            <svg className="card-pack-ripped-opening" viewBox="0 0 205 72" preserveAspectRatio="none" aria-hidden="true">
-                                <path className="card-pack-ripped-opening-shadow" d={ openingEdgePath } />
-                                <path className="card-pack-ripped-opening-fiber" d={ openingEdgePath } />
-                            </svg> }
-                        <div className="card-pack-body">
-                            <span className="card-pack-shine" aria-hidden="true" />
-                            <span className="card-pack-kicker">EDICAO FUNDADORES</span>
-                            <span className="card-pack-logo">CYBER<br />HEROIC</span>
-                            <span className="card-pack-emblem" aria-hidden="true">
-                                <span />
-                            </span>
-                            <span className="card-pack-count">CONTEM 1 CARD</span>
-                        </div>
+                        <svg className="card-pack-artwork-surface" viewBox="0 0 205 285" preserveAspectRatio="none" aria-hidden="true">
+                            <defs>
+                                { renderPackageArtwork('card-pack-complete-artwork') }
+                                { tearProgress > 0 && renderPackageArtwork('card-pack-lifted-artwork', tearProgress) }
+                                <clipPath id="card-pack-lifted-top-clip" clipPathUnits="userSpaceOnUse">
+                                    <path d={ liftedTopClipPath } />
+                                </clipPath>
+                                <clipPath id="card-pack-finished-body-clip" clipPathUnits="userSpaceOnUse">
+                                    <path d={ finishedBodyClipPath } />
+                                </clipPath>
+                                <clipPath id="card-pack-edge-clip" clipPathUnits="userSpaceOnUse">
+                                    <rect x={ roundPointValue(edgeClipStart) } y="-60" width={ roundPointValue(edgeClipWidth) } height="180" />
+                                </clipPath>
+                            </defs>
+
+                            { tearProgress <= 0
+                                ? <use href="#card-pack-complete-artwork" />
+                                : <>
+                                    <use href="#card-pack-complete-artwork" clipPath="url(#card-pack-finished-body-clip)" />
+                                    <g clipPath="url(#card-pack-complete-artwork-outline)">
+                                        <g clipPath="url(#card-pack-edge-clip)">
+                                            <path className="card-pack-torn-lower-shadow" d={ tornEdgePath } />
+                                            <path className="card-pack-torn-lower-fiber" d={ tornEdgePath } />
+                                        </g>
+                                    </g>
+                                    <g className="card-pack-finished-top">
+                                        <use href="#card-pack-lifted-artwork" clipPath="url(#card-pack-lifted-top-clip)" />
+                                        <g clipPath="url(#card-pack-lifted-artwork-outline)">
+                                            <g clipPath="url(#card-pack-edge-clip)">
+                                                <path className="card-pack-torn-upper-fiber" d={ tornUpperEdgePath } />
+                                                <path className="card-pack-torn-upper-detail" d={ tornUpperEdgePath } />
+                                            </g>
+                                        </g>
+                                    </g>
+                                </> }
+                            { tearFront > PERFORATION_INSET &&
+                                <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } /> }
+                        </svg>
                         <button
                             type="button"
                             className="card-pack-tear-strip"
@@ -408,56 +463,7 @@ export const CardPackOpeningView: FC<{}> = props =>
                             onPointerMove={ onTearPointerMove }
                             onPointerUp={ onTearPointerUp }
                             onPointerCancel={ onTearPointerCancel }
-                            onKeyDown={ onTearKeyDown }>
-                            <svg className="card-pack-tear-surface" viewBox="0 0 205 72" preserveAspectRatio="none" aria-hidden="true">
-                                <defs>
-                                    <linearGradient id="card-pack-tear-rails" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="205" y2="0">
-                                        <stop offset="0" stopColor="#fff" stopOpacity="0" />
-                                        <stop offset="0.12" stopColor="#fff" stopOpacity="0" />
-                                        <stop offset="0.12" stopColor="#fff" stopOpacity="0.16" />
-                                        <stop offset="0.17" stopColor="#fff" stopOpacity="0.16" />
-                                        <stop offset="0.17" stopColor="#fff" stopOpacity="0" />
-                                        <stop offset="0.82" stopColor="#000" stopOpacity="0" />
-                                        <stop offset="0.82" stopColor="#000" stopOpacity="0.18" />
-                                        <stop offset="0.88" stopColor="#000" stopOpacity="0.18" />
-                                        <stop offset="0.88" stopColor="#000" stopOpacity="0" />
-                                        <stop offset="1" stopColor="#000" stopOpacity="0" />
-                                    </linearGradient>
-                                    <linearGradient
-                                        id="card-pack-tear-fiber"
-                                        gradientUnits="userSpaceOnUse"
-                                        x1={ roundPointValue(tearFront) }
-                                        y1="0"
-                                        x2={ roundPointValue(Math.min(PACK_WIDTH, tearFront + 10)) }
-                                        y2="0">
-                                        <stop offset="0" stopColor="#fff0b0" stopOpacity="0" />
-                                        <stop offset="0.35" stopColor="#fff0b0" stopOpacity="0" />
-                                        <stop offset="0.7" stopColor="#fff0b0" stopOpacity="1" />
-                                    </linearGradient>
-                                    <clipPath id="card-pack-strip-artwork-clip" clipPathUnits="userSpaceOnUse">
-                                        <path d={ stripPath } />
-                                    </clipPath>
-                                </defs>
-
-                                <g className="card-pack-rip-peeled">
-                                    <path className="card-pack-rip-peeled-face" d={ stripPath } />
-                                    <g clipPath="url(#card-pack-strip-artwork-clip)">
-                                        <path className="card-pack-rip-artwork-orange" d={ stripOrangeArtworkPath } />
-                                        <path className="card-pack-rip-artwork-red" d={ stripRedArtworkPath } />
-                                    </g>
-                                    <path className="card-pack-rip-artwork-rails" d={ stripPath } />
-                                    <path className="card-pack-rip-peeled-frame" d={ stripFramePath } />
-                                    { tearFront > 0.1 &&
-                                        <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } /> }
-                                    { (tearProgress > 0.01) && peeledEdgePath &&
-                                        <>
-                                            <path className="card-pack-rip-fiber" d={ peeledEdgePath } />
-                                            <path className="card-pack-rip-perforation" d={ peeledEdgePath } />
-                                        </> }
-                                </g>
-
-                            </svg>
-                        </button>
+                            onKeyDown={ onTearKeyDown } />
                     </div>
 
                     { phase === 'opening' &&
