@@ -34,6 +34,21 @@ class User extends Authenticatable
         return $this->hasMany(UserCurrency::class, 'user_id');
     }
 
+    public function cardPacks(): HasMany
+    {
+        return $this->hasMany(UserCardPack::class);
+    }
+
+    public function cards(): HasMany
+    {
+        return $this->hasMany(UserCard::class);
+    }
+
+    public function cardPackOpenings(): HasMany
+    {
+        return $this->hasMany(CardPackOpening::class);
+    }
+
     public function sessions()
     {
         return $this->hasMany(Session::class);

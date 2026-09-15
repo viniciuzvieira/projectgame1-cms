@@ -8,6 +8,7 @@ import { AvatarEditorView } from '../avatar-editor/AvatarEditorView';
 import { CameraWidgetView } from '../camera/CameraWidgetView';
 import { CampaignView } from '../campaign/CampaignView';
 import { CardPackOpeningView } from '../card-packs/CardPackOpeningView';
+import { CardCollectionView } from '../card-packs/CardCollectionView';
 import { CatalogView } from '../catalog/CatalogView';
 import { CdCaseOpeningView } from '../cd-case/CdCaseOpeningView';
 import { ChatHistoryView } from '../chat-history/ChatHistoryView';
@@ -104,6 +105,7 @@ export const MainView: FC<{}> = props => {
             <HcCenterView />
             <CampaignView />
             <CardPackOpeningView />
+            <CardCollectionView />
             <CdCaseOpeningView />
         </Base>
     );

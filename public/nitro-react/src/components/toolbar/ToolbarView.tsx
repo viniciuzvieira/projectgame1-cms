@@ -98,6 +98,9 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props => {
                                 <span className="cd-case-toolbar-card" />
                             </span>
                         </Base>
+                        <button type="button" className="navigation-item card-collection-toolbar-button" title="Minha colecao de pacotes e cartas" aria-label="Minha colecao de pacotes e cartas" onClick={ () => CreateLinkEvent('card-collection/toggle') }>
+                            <span className="card-collection-toolbar-icon" aria-hidden="true" />
+                        </button>
                         <Base pointer className="navigation-item icon icon-inventory" onClick={event => CreateLinkEvent('inventory/toggle')}>
                             {(getFullCount > 0) &&
                                 <LayoutItemCountView count={getFullCount} />}

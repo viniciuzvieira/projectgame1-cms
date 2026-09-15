@@ -75,7 +75,8 @@
     transform: translateX(-50%);
 }
 
-.card-pack-shell {
+.card-pack-shell,
+.card-pack-thumbnail {
     --card-pack-frame-color: #122437;
     --card-pack-inner-frame-color: #ffd977;
     --card-pack-inner-shadow-color: rgba(80, 13, 27, .42);
@@ -84,6 +85,9 @@
     --card-pack-color-red: #d73526;
     --card-pack-color-deep-red: #8e1f2b;
 
+}
+
+.card-pack-shell {
     z-index: 5;
     filter: drop-shadow(7px 9px 0 rgba(42, 55, 67, .28));
     transition: opacity .18s linear;
@@ -104,7 +108,7 @@
 }
 
 .card-pack-master-bottom {
-    fill: #64192a;
+    fill: var(--card-pack-bottom, #64192a);
 }
 
 .card-pack-master-left-fold {
@@ -133,8 +137,8 @@
 }
 
 .card-pack-master-copy {
-    fill: #fff4c9;
-    stroke: #5b1723;
+    fill: var(--card-pack-paper, #fff4c9);
+    stroke: var(--card-pack-ink, #5b1723);
     stroke-linejoin: round;
     text-anchor: middle;
     paint-order: stroke;
@@ -166,7 +170,7 @@
 }
 
 .card-pack-master-emblem-outer {
-    fill: #ffd75d;
+    fill: var(--card-pack-emblem, #ffd75d);
     stroke: #3e1320;
     stroke-width: 4px;
 }
@@ -378,6 +382,9 @@
     bottom: 13px;
     left: 0;
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     justify-content: center;
 
     .btn {
@@ -387,6 +394,10 @@
         font-weight: 700;
     }
 }
+
+.card-pack-error { max-width: 90%; padding: 6px 10px; border: 1px solid #b66b4d; background: #fff0da; color: #773c27; font-size: 11px; text-align: center; }
+
+.card-collection-toolbar-button { display: flex; align-items: center; justify-content: center; width: 40px; height: 44px; border: 0; background: transparent; padding: 0; cursor: pointer; }
 
 .phase-opening {
     .card-pack-shell {

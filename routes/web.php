@@ -5,6 +5,7 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BannedController;
+use App\Http\Controllers\CardCollectionController;
 use App\Http\Controllers\FlashController;
 use App\Http\Controllers\GameAuthController;
 use App\Http\Controllers\HomeController;
@@ -72,6 +73,11 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
         });
 
     Route::middleware('auth')->group(function () {
+        Route::get('/api/game/collection', [CardCollectionController::class, 'index'])
+            ->name('api.game.collection');
+        Route::post('/api/game/collection/packs/{packId}/open', [CardCollectionController::class, 'open'])
+            ->whereNumber('packId')->middleware('throttle:30,1')->name('api.game.collection.open');
+
         Route::prefix('user')->group(function () {
             Route::get('/me', [MeController::class, 'show'])->name('me.show');
 

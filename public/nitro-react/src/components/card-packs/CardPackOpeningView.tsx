@@ -1,11 +1,13 @@
 import { ILinkEventTracker } from '@nitrots/nitro-renderer';
-import { FC, KeyboardEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FC, KeyboardEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { AddEventLinkTracker, RemoveLinkEventTracker } from '../../api';
 import { Button, LayoutAvatarImageView, LayoutPixelLoadingView, NitroCardContentView, NitroCardHeaderView, NitroCardView } from '../../common';
 import { useSessionInfo } from '../../hooks';
 import { bendPackagePath, COMPLETE_TEAR_PROGRESS, getPackageColorBand, getTearFront, PACK_HEIGHT, PACK_WIDTH, TearDirection } from './CardPackGeometry';
+import { CollectionCard, CollectionPack } from './CardCollectionApi';
+import { CardPackDesign, getCardPackDesign } from './CardPackDesign';
 
-type PackOpeningPhase = 'sealed' | 'tearing' | 'opening' | 'revealed';
+type PackOpeningPhase = 'sealed' | 'tearing' | 'authorizing' | 'opening' | 'revealed';
 
 interface DragState
 {
@@ -141,7 +143,7 @@ const getBodyClipPath = (tearFront: number, direction: TearDirection): string =>
     return `${ pointsToPath(points) } L ${ PACK_WIDTH } ${ PACK_HEIGHT } L 0 ${ PACK_HEIGHT } Z`;
 }
 
-const renderPackageArtwork = (id: string, progress = 0, direction: TearDirection = 'right-to-left') =>
+export const renderPackageArtwork = (id: string, progress = 0, direction: TearDirection = 'right-to-left', design: CardPackDesign = getCardPackDesign('founders')) =>
 {
     const path = (d: string) => bendPackagePath(d, progress, direction);
 
@@ -172,9 +174,9 @@ const renderPackageArtwork = (id: string, progress = 0, direction: TearDirection
                 <rect className="card-pack-master-emblem-outer" x="73" y="143" width="59" height="59" />
                 <rect className="card-pack-master-emblem-inner" x="87" y="157" width="31" height="31" />
             </g>
-            <text className="card-pack-master-copy card-pack-master-kicker" x="102.5" y="67">EDICAO FUNDADORES</text>
-            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="101">CYBER</text>
-            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="125">HEROIC</text>
+            <text className="card-pack-master-copy card-pack-master-kicker" x="102.5" y="67">{ design.kicker }</text>
+            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="101">{ design.title[0] }</text>
+            <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="125">{ design.title[1] }</text>
             <text className="card-pack-master-copy card-pack-master-count" x="102.5" y="258">CONTEM 1 CARD</text>
         </> }
         <path className="card-pack-master-bottom-stitch" d={ path('M 10 276 H 195') } />
@@ -184,12 +186,26 @@ const renderPackageArtwork = (id: string, progress = 0, direction: TearDirection
     </g>;
 }
 
-export const CardPackOpeningView: FC<{}> = props =>
+interface CardPackOpeningViewProps
 {
-    const [ isVisible, setIsVisible ] = useState(false);
+    embedded?: boolean;
+    pack?: CollectionPack;
+    onOpen?: () => Promise<CollectionCard>;
+    onBusyChange?: (busy: boolean) => void;
+}
+
+export const CardPackOpeningView: FC<CardPackOpeningViewProps> = props =>
+{
+    const { embedded = false, pack, onOpen, onBusyChange } = props;
+    const [ isVisible, setIsVisible ] = useState(embedded);
     const [ phase, setPhase ] = useState<PackOpeningPhase>('sealed');
     const [ tearProgress, setTearProgress ] = useState(0);
     const [ tearDirection, setTearDirection ] = useState<TearDirection>('right-to-left');
+    const [ reward, setReward ] = useState<CollectionCard>(null);
+    const [ error, setError ] = useState('');
+    const openingBusy = useRef(false);
+    const generation = useRef(0);
+    const instanceId = useId().replace(/:/g, '');
     const dragState = useRef<DragState>(null);
     const revealTimer = useRef<number>(null);
     const tearAnimation = useRef<number>(null);
@@ -238,20 +254,52 @@ export const CardPackOpeningView: FC<{}> = props =>
 
     const resetPack = useCallback(() =>
     {
+        generation.current++;
+        openingBusy.current = false;
+        setReward(null);
+        setError('');
+        onBusyChange?.(false);
         clearRevealTimer();
         clearTearAnimation();
         dragState.current = null;
         setTearProgress(0);
         setTearDirection('right-to-left');
         setPhase('sealed');
-    }, [ clearRevealTimer, clearTearAnimation ]);
+    }, [ clearRevealTimer, clearTearAnimation, onBusyChange ]);
 
-    const startOpening = useCallback((fromProgress = tearProgress) =>
+    const startOpening = useCallback(async (fromProgress = tearProgress) =>
     {
-        if((phase === 'opening') || (phase === 'revealed')) return;
+        if(openingBusy.current || (phase === 'revealed') || (pack && pack.quantity < 1)) return;
+
+        openingBusy.current = true;
+        onBusyChange?.(true);
+        setError('');
+        const currentGeneration = ++generation.current;
 
         clearRevealTimer();
+        clearTearAnimation();
         dragState.current = null;
+
+        if(onOpen)
+        {
+            setPhase('authorizing');
+            try
+            {
+                const card = await onOpen();
+                if(currentGeneration !== generation.current) return;
+                setReward(card);
+            }
+            catch(openError)
+            {
+                if(currentGeneration !== generation.current) return;
+                openingBusy.current = false;
+                onBusyChange?.(false);
+                setError(openError instanceof Error ? openError.message : 'Nao foi possivel abrir este pacote.');
+                setTearProgress(0);
+                setPhase('sealed');
+                return;
+            }
+        }
         setPhase('tearing');
 
         animateTearProgress(fromProgress, COMPLETE_TEAR_PROGRESS, Math.max(140, (COMPLETE_TEAR_PROGRESS - fromProgress) * 480), () =>
@@ -262,9 +310,11 @@ export const CardPackOpeningView: FC<{}> = props =>
             {
                 revealTimer.current = null;
                 setPhase('revealed');
+                openingBusy.current = false;
+                onBusyChange?.(false);
             }, REVEAL_DELAY);
         });
-    }, [ phase, tearProgress, clearRevealTimer, animateTearProgress ]);
+    }, [ phase, tearProgress, pack, onOpen, onBusyChange, clearRevealTimer, clearTearAnimation, animateTearProgress ]);
 
     const closeWindow = useCallback(() =>
     {
@@ -274,6 +324,8 @@ export const CardPackOpeningView: FC<{}> = props =>
 
     useEffect(() =>
     {
+        if(embedded) return;
+
         const linkTracker: ILinkEventTracker = {
             linkReceived: (url: string) =>
             {
@@ -300,13 +352,15 @@ export const CardPackOpeningView: FC<{}> = props =>
         AddEventLinkTracker(linkTracker);
 
         return () => RemoveLinkEventTracker(linkTracker);
-    }, [ closeWindow ]);
+    }, [ closeWindow, embedded ]);
 
     useEffect(() => () =>
     {
+        generation.current++;
+        onBusyChange?.(false);
         clearRevealTimer();
         clearTearAnimation();
-    }, [ clearRevealTimer, clearTearAnimation ]);
+    }, [ clearRevealTimer, clearTearAnimation, onBusyChange ]);
 
     const releasePointer = (event: ReactPointerEvent<HTMLButtonElement>) =>
     {
@@ -316,6 +370,7 @@ export const CardPackOpeningView: FC<{}> = props =>
     const onTearPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) =>
     {
         if((phase !== 'sealed') && (phase !== 'tearing')) return;
+        if(openingBusy.current || (pack && pack.quantity < 1)) return;
         if((event.button !== 0) || dragState.current) return;
 
         clearTearAnimation();
@@ -402,102 +457,113 @@ export const CardPackOpeningView: FC<{}> = props =>
     const sealedClipStart = tearDirection === 'left-to-right' ? tearFront : 0;
     const sealedClipWidth = PACK_WIDTH * (1 - cutProgress);
     const sealedPerforationPath = `M ${ PERFORATION_INSET } 43 H ${ PACK_WIDTH - PERFORATION_INSET }`;
+    const design = getCardPackDesign(pack?.design_key || 'founders');
+    const completeId = `card-pack-${ instanceId }-complete-artwork`;
+    const liftedId = `card-pack-${ instanceId }-lifted-artwork`;
+    const topClipId = `card-pack-${ instanceId }-lifted-top-clip`;
+    const bodyClipId = `card-pack-${ instanceId }-body-clip`;
+    const edgeClipId = `card-pack-${ instanceId }-edge-clip`;
+    const sealedClipId = `card-pack-${ instanceId }-sealed-clip`;
+    const isBusy = phase === 'authorizing' || phase === 'opening' || openingBusy.current;
 
-    return (
-        <NitroCardView uniqueKey="card-pack-opening" className="nitro-card-pack-opening" theme="primary-slim">
-            <NitroCardHeaderView headerText="Abrir pacote de cards" onCloseClick={ closeWindow } />
-            <NitroCardContentView overflow="hidden">
-                <div className={ `card-pack-stage phase-${ phase }` }>
-                    <div className="card-pack-stage-heading">
-                        <strong>{ phase === 'revealed' ? 'VOCE ENCONTROU!' : 'PACOTE CYBER HEROIC' }</strong>
-                        <span>{ phase === 'revealed' ? 'Carta adicionada apenas nesta demonstracao' : 'Arraste uma ponta do topo para o outro lado' }</span>
-                    </div>
+    const stage = (
+        <div className={ `card-pack-stage phase-${ phase }` }>
+            <div className="card-pack-stage-heading">
+                <strong>{ phase === 'revealed' ? 'VOCE ENCONTROU!' : pack?.name || 'PACOTE CYBER HEROIC' }</strong>
+                <span>{ phase === 'revealed' ? (onOpen ? 'Carta adicionada a sua colecao' : 'Carta adicionada apenas nesta demonstracao') : 'Arraste uma ponta do topo para o outro lado' }</span>
+            </div>
 
-                    <div className="card-pack-reward" aria-hidden={ phase !== 'revealed' }>
-                        <div className="card-pack-reward-rarity">LENDARIO</div>
-                        <div className="card-pack-reward-art">
-                            <span className="card-pack-reward-halo" aria-hidden="true" />
-                            <LayoutAvatarImageView
-                                figure={ userFigure || '' }
-                                direction={ 2 }
-                                showLoading
-                                loadingSize="small"
-                                classNames={ [ 'card-pack-reward-avatar' ] } />
-                        </div>
-                        <div className="card-pack-reward-name">CYBER HERO</div>
-                        <div className="card-pack-reward-stats">
-                            <span><b>98</b> PODER</span>
-                            <span><b>UR</b> SERIE 01</span>
-                        </div>
-                    </div>
+            <div className={ `card-pack-reward reward-theme-${ reward?.design_key || 'founders' }` } aria-hidden={ phase !== 'revealed' }>
+                <div className="card-pack-reward-rarity">{ reward?.rarity || 'LENDARIO' }</div>
+                <div className="card-pack-reward-art">
+                    <span className="card-pack-reward-halo" aria-hidden="true" />
+                    <LayoutAvatarImageView
+                        figure={ reward?.figure || userFigure || '' }
+                        direction={ 2 }
+                        showLoading
+                        loadingSize="small"
+                        classNames={ [ 'card-pack-reward-avatar' ] } />
+                </div>
+                <div className="card-pack-reward-name">{ reward?.name || 'CYBER HERO' }</div>
+                <div className="card-pack-reward-stats">
+                    <span><b>{ reward?.power || 98 }</b> PODER</span>
+                    <span>{ reward?.series || 'UR / SERIE 01' }</span>
+                </div>
+            </div>
 
-                    <div className="card-pack-shell" aria-hidden={ phase === 'revealed' }>
-                        <svg className="card-pack-artwork-surface" viewBox="0 0 205 285" preserveAspectRatio="none" aria-hidden="true">
-                            <defs>
-                                { renderPackageArtwork('card-pack-complete-artwork') }
-                                { tearProgress > 0 && renderPackageArtwork('card-pack-lifted-artwork', tearProgress, tearDirection) }
-                                <clipPath id="card-pack-lifted-top-clip" clipPathUnits="userSpaceOnUse">
-                                    <path d={ liftedTopClipPath } />
-                                </clipPath>
-                                <clipPath id="card-pack-finished-body-clip" clipPathUnits="userSpaceOnUse">
-                                    <path d={ finishedBodyClipPath } />
-                                </clipPath>
-                                <clipPath id="card-pack-edge-clip" clipPathUnits="userSpaceOnUse">
-                                    <rect x={ roundPointValue(edgeClipStart) } y="-60" width={ roundPointValue(edgeClipWidth) } height="180" />
-                                </clipPath>
-                                <clipPath id="card-pack-sealed-edge-clip" clipPathUnits="userSpaceOnUse">
-                                    <rect x={ roundPointValue(sealedClipStart) } y="0" width={ roundPointValue(sealedClipWidth) } height="72" />
-                                </clipPath>
-                            </defs>
+            <div className="card-pack-shell" style={ design.style } aria-hidden={ phase === 'revealed' }>
+                <svg className="card-pack-artwork-surface" viewBox="0 0 205 285" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                        { renderPackageArtwork(completeId, 0, tearDirection, design) }
+                        { tearProgress > 0 && renderPackageArtwork(liftedId, tearProgress, tearDirection, design) }
+                        <clipPath id={ topClipId } clipPathUnits="userSpaceOnUse">
+                            <path d={ liftedTopClipPath } />
+                        </clipPath>
+                        <clipPath id={ bodyClipId } clipPathUnits="userSpaceOnUse">
+                            <path d={ finishedBodyClipPath } />
+                        </clipPath>
+                        <clipPath id={ edgeClipId } clipPathUnits="userSpaceOnUse">
+                            <rect x={ roundPointValue(edgeClipStart) } y="-60" width={ roundPointValue(edgeClipWidth) } height="180" />
+                        </clipPath>
+                        <clipPath id={ sealedClipId } clipPathUnits="userSpaceOnUse">
+                            <rect x={ roundPointValue(sealedClipStart) } y="0" width={ roundPointValue(sealedClipWidth) } height="72" />
+                        </clipPath>
+                    </defs>
 
-                            { tearProgress <= 0
-                                ? <use href="#card-pack-complete-artwork" />
-                                : <>
-                                    <use href="#card-pack-complete-artwork" clipPath="url(#card-pack-finished-body-clip)" />
-                                    <g clipPath="url(#card-pack-complete-artwork-outline)">
-                                        <g clipPath="url(#card-pack-edge-clip)">
-                                            <path className="card-pack-torn-lower-shadow" d={ tornEdgePath } />
-                                            <path className="card-pack-torn-lower-fiber" d={ tornEdgePath } />
-                                        </g>
+                    { tearProgress <= 0
+                        ? <use href={ `#${ completeId }` } />
+                        : <>
+                            <use href={ `#${ completeId }` } clipPath={ `url(#${ bodyClipId })` } />
+                            <g clipPath={ `url(#${ completeId }-outline)` }>
+                                <g clipPath={ `url(#${ edgeClipId })` }>
+                                    <path className="card-pack-torn-lower-shadow" d={ tornEdgePath } />
+                                    <path className="card-pack-torn-lower-fiber" d={ tornEdgePath } />
+                                </g>
+                            </g>
+                            <g className="card-pack-finished-top">
+                                <use href={ `#${ liftedId }` } clipPath={ `url(#${ topClipId })` } />
+                                <g clipPath={ `url(#${ liftedId }-outline)` }>
+                                    <g clipPath={ `url(#${ edgeClipId })` }>
+                                        <path className="card-pack-torn-upper-fiber" d={ tornUpperEdgePath } />
+                                        <path className="card-pack-torn-upper-detail" d={ tornUpperEdgePath } />
                                     </g>
-                                    <g className="card-pack-finished-top">
-                                        <use href="#card-pack-lifted-artwork" clipPath="url(#card-pack-lifted-top-clip)" />
-                                        <g clipPath="url(#card-pack-lifted-artwork-outline)">
-                                            <g clipPath="url(#card-pack-edge-clip)">
-                                                <path className="card-pack-torn-upper-fiber" d={ tornUpperEdgePath } />
-                                                <path className="card-pack-torn-upper-detail" d={ tornUpperEdgePath } />
-                                            </g>
-                                        </g>
-                                    </g>
-                                </> }
-                            { cutProgress < 1 &&
-                                <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } clipPath="url(#card-pack-sealed-edge-clip)" /> }
-                        </svg>
-                        <button
-                            type="button"
-                            className="card-pack-tear-strip"
-                            aria-label="Segure uma ponta do topo e arraste para o lado oposto para rasgar o pacote"
-                            disabled={ (phase === 'opening') || (phase === 'revealed') }
-                            onPointerDown={ onTearPointerDown }
-                            onPointerMove={ onTearPointerMove }
-                            onPointerUp={ onTearPointerUp }
-                            onPointerCancel={ onTearPointerCancel }
-                            onKeyDown={ onTearKeyDown } />
-                    </div>
+                                </g>
+                            </g>
+                        </> }
+                    { cutProgress < 1 &&
+                                <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } clipPath={ `url(#${ sealedClipId })` } /> }
+                </svg>
+                <button
+                    type="button"
+                    className="card-pack-tear-strip"
+                    aria-label="Segure uma ponta do topo e arraste para o lado oposto para rasgar o pacote"
+                    disabled={ isBusy || phase === 'revealed' || (pack && pack.quantity < 1) }
+                    onPointerDown={ onTearPointerDown }
+                    onPointerMove={ onTearPointerMove }
+                    onPointerUp={ onTearPointerUp }
+                    onPointerCancel={ onTearPointerCancel }
+                    onKeyDown={ onTearKeyDown } />
+            </div>
 
-                    { phase === 'opening' &&
+            { (phase === 'opening' || phase === 'authorizing') &&
                         <div className="card-pack-opening-status">
                             <LayoutPixelLoadingView size="large" label="Revelando card" />
-                            <strong>REVELANDO...</strong>
+                            <strong>{ phase === 'authorizing' ? 'ABRINDO PACOTE...' : 'REVELANDO...' }</strong>
                         </div> }
 
-                    <div className="card-pack-action">
-                        { phase === 'revealed'
-                            ? <Button variant="success" onClick={ resetPack }>ABRIR OUTRO PACOTE</Button>
-                            : <Button variant="primary" disabled={ phase === 'opening' } onClick={ () => startOpening() }>ABRIR SEM ARRASTAR</Button> }
-                    </div>
-                </div>
-            </NitroCardContentView>
-        </NitroCardView>
+            <div className="card-pack-action">
+                { error && <div className="card-pack-error" role="alert">{ error }</div> }
+                { phase === 'revealed'
+                    ? <Button variant="success" disabled={ pack && pack.quantity < 1 } onClick={ resetPack }>{ pack && pack.quantity < 1 ? 'PACOTES ESGOTADOS' : 'ABRIR OUTRO PACOTE' }</Button>
+                    : <Button variant="primary" disabled={ isBusy || (pack && pack.quantity < 1) } onClick={ () => startOpening() }>{ pack && pack.quantity < 1 ? 'PACOTES ESGOTADOS' : error ? 'TENTAR NOVAMENTE' : 'ABRIR SEM ARRASTAR' }</Button> }
+            </div>
+        </div>
     );
+
+    if(embedded) return stage;
+
+    return <NitroCardView uniqueKey="card-pack-opening" className="nitro-card-pack-opening" theme="primary-slim">
+        <NitroCardHeaderView headerText="Abrir pacote de cards" onCloseClick={ closeWindow } />
+        <NitroCardContentView overflow="hidden">{ stage }</NitroCardContentView>
+    </NitroCardView>;
 }
