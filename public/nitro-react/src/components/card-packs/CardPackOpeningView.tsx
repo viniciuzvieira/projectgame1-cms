@@ -3,7 +3,7 @@ import { FC, KeyboardEvent, PointerEvent as ReactPointerEvent, useCallback, useE
 import { AddEventLinkTracker, RemoveLinkEventTracker } from '../../api';
 import { Button, LayoutAvatarImageView, LayoutPixelLoadingView, NitroCardContentView, NitroCardHeaderView, NitroCardView } from '../../common';
 import { useSessionInfo } from '../../hooks';
-import { bendPackagePath, getPackageColorBand, PACK_HEIGHT, PACK_WIDTH } from './CardPackGeometry';
+import { bendPackagePath, COMPLETE_TEAR_PROGRESS, getPackageColorBand, getTearFront, PACK_HEIGHT, PACK_WIDTH, TearDirection } from './CardPackGeometry';
 
 type PackOpeningPhase = 'sealed' | 'tearing' | 'opening' | 'revealed';
 
@@ -13,6 +13,7 @@ interface DragState
     startX: number;
     startProgress: number;
     currentProgress: number;
+    direction: TearDirection;
 }
 
 interface TearPoint
@@ -124,24 +125,25 @@ const getTopClipPath = (): string =>
     return `M 0 -8 H ${ PACK_WIDTH } L ${ roundPointValue(points[0].x) } ${ roundPointValue(points[0].y) } ${ points.slice(1).map(point => `L ${ roundPointValue(point.x) } ${ roundPointValue(point.y) }`).join(' ') } Z`;
 }
 
-const getBodyClipPath = (tearFront: number): string =>
+const getBodyClipPath = (tearFront: number, direction: TearDirection): string =>
 {
     // Overlap only the attached tear edge, so antialiasing cannot expose a seam.
-    const blendStart = Math.max(0, tearFront - 2);
+    const attachedSide = direction === 'left-to-right' ? 1 : -1;
+    const blendStart = Math.max(0, Math.min(PACK_WIDTH, tearFront + attachedSide * 2));
     const points = [
         ...getEdgePoints(0, PACK_WIDTH),
         { x: blendStart, y: getTearEdgeY(blendStart) },
         { x: tearFront, y: getTearEdgeY(tearFront) }
     ]
         .sort((first, second) => first.x - second.x)
-        .map(point => ({ ...point, y: point.y - Math.max(0, Math.min(1, (tearFront - point.x) / 2)) }));
+        .map(point => ({ ...point, y: point.y - Math.max(0, Math.min(1, attachedSide * (point.x - tearFront) / 2)) }));
 
     return `${ pointsToPath(points) } L ${ PACK_WIDTH } ${ PACK_HEIGHT } L 0 ${ PACK_HEIGHT } Z`;
 }
 
-const renderPackageArtwork = (id: string, progress = 0) =>
+const renderPackageArtwork = (id: string, progress = 0, direction: TearDirection = 'right-to-left') =>
 {
-    const path = (d: string) => bendPackagePath(d, progress);
+    const path = (d: string) => bendPackagePath(d, progress, direction);
 
     return <g id={ id }>
         <defs>
@@ -187,6 +189,7 @@ export const CardPackOpeningView: FC<{}> = props =>
     const [ isVisible, setIsVisible ] = useState(false);
     const [ phase, setPhase ] = useState<PackOpeningPhase>('sealed');
     const [ tearProgress, setTearProgress ] = useState(0);
+    const [ tearDirection, setTearDirection ] = useState<TearDirection>('right-to-left');
     const dragState = useRef<DragState>(null);
     const revealTimer = useRef<number>(null);
     const tearAnimation = useRef<number>(null);
@@ -239,6 +242,7 @@ export const CardPackOpeningView: FC<{}> = props =>
         clearTearAnimation();
         dragState.current = null;
         setTearProgress(0);
+        setTearDirection('right-to-left');
         setPhase('sealed');
     }, [ clearRevealTimer, clearTearAnimation ]);
 
@@ -250,7 +254,7 @@ export const CardPackOpeningView: FC<{}> = props =>
         dragState.current = null;
         setPhase('tearing');
 
-        animateTearProgress(fromProgress, 1, Math.max(140, (1 - fromProgress) * 480), () =>
+        animateTearProgress(fromProgress, COMPLETE_TEAR_PROGRESS, Math.max(140, (COMPLETE_TEAR_PROGRESS - fromProgress) * 480), () =>
         {
             setPhase('opening');
 
@@ -312,13 +316,21 @@ export const CardPackOpeningView: FC<{}> = props =>
     const onTearPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) =>
     {
         if((phase !== 'sealed') && (phase !== 'tearing')) return;
+        if((event.button !== 0) || dragState.current) return;
 
         clearTearAnimation();
+        const bounds = event.currentTarget.getBoundingClientRect();
+        // Choose an end for a fresh pack; resuming a partial cut keeps its direction.
+        const direction = tearProgress > 0 ? tearDirection :
+            (event.clientX < bounds.left + bounds.width / 2 ? 'left-to-right' : 'right-to-left');
+
+        setTearDirection(direction);
         dragState.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startProgress: tearProgress,
-            currentProgress: tearProgress
+            currentProgress: tearProgress,
+            direction
         };
 
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -332,8 +344,8 @@ export const CardPackOpeningView: FC<{}> = props =>
 
         if(!drag || (drag.pointerId !== event.pointerId)) return;
 
-        const distance = drag.startX - event.clientX;
-        const progress = Math.max(0, Math.min(1, drag.startProgress + (distance / DRAG_DISTANCE)));
+        const distance = (event.clientX - drag.startX) * (drag.direction === 'left-to-right' ? 1 : -1);
+        const progress = Math.max(0, Math.min(COMPLETE_TEAR_PROGRESS, drag.startProgress + (distance / DRAG_DISTANCE)));
 
         drag.currentProgress = progress;
         setTearProgress(progress);
@@ -361,6 +373,8 @@ export const CardPackOpeningView: FC<{}> = props =>
 
     const onTearPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) =>
     {
+        if(!dragState.current || (dragState.current.pointerId !== event.pointerId)) return;
+
         releasePointer(event);
         dragState.current = null;
         animateTearProgress(tearProgress, 0, 240, () => setPhase('sealed'));
@@ -376,16 +390,18 @@ export const CardPackOpeningView: FC<{}> = props =>
 
     if(!isVisible) return null;
 
-    const tearFront = PACK_WIDTH * (1 - tearProgress);
-    const liftedTopClipPath = bendPackagePath(getTopClipPath(), tearProgress);
-    const finishedBodyClipPath = getBodyClipPath(tearFront);
+    const cutProgress = Math.min(1, tearProgress);
+    const tearFront = getTearFront(cutProgress, tearDirection);
+    const liftedTopClipPath = bendPackagePath(getTopClipPath(), tearProgress, tearDirection);
+    const finishedBodyClipPath = getBodyClipPath(tearFront, tearDirection);
     // Keep the torn-edge pattern anchored to the package while a moving clip reveals it.
     const tornEdgePath = getEdgePath(0, PACK_WIDTH);
-    const tornUpperEdgePath = bendPackagePath(tornEdgePath, tearProgress);
-    const edgeClipStart = Math.max(0, tearFront);
-    const edgeClipWidth = Math.max(0, PACK_WIDTH - edgeClipStart);
-    const perforationEnd = Math.max(PERFORATION_INSET, Math.min(PACK_WIDTH - PERFORATION_INSET, tearFront));
-    const sealedPerforationPath = `M ${ PERFORATION_INSET } 43 L ${ roundPointValue(perforationEnd) } 43`;
+    const tornUpperEdgePath = bendPackagePath(tornEdgePath, tearProgress, tearDirection);
+    const edgeClipStart = tearDirection === 'left-to-right' ? 0 : tearFront;
+    const edgeClipWidth = PACK_WIDTH * cutProgress;
+    const sealedClipStart = tearDirection === 'left-to-right' ? tearFront : 0;
+    const sealedClipWidth = PACK_WIDTH * (1 - cutProgress);
+    const sealedPerforationPath = `M ${ PERFORATION_INSET } 43 H ${ PACK_WIDTH - PERFORATION_INSET }`;
 
     return (
         <NitroCardView uniqueKey="card-pack-opening" className="nitro-card-pack-opening" theme="primary-slim">
@@ -394,7 +410,7 @@ export const CardPackOpeningView: FC<{}> = props =>
                 <div className={ `card-pack-stage phase-${ phase }` }>
                     <div className="card-pack-stage-heading">
                         <strong>{ phase === 'revealed' ? 'VOCE ENCONTROU!' : 'PACOTE CYBER HEROIC' }</strong>
-                        <span>{ phase === 'revealed' ? 'Carta adicionada apenas nesta demonstracao' : 'Arraste o topo da direita para a esquerda' }</span>
+                        <span>{ phase === 'revealed' ? 'Carta adicionada apenas nesta demonstracao' : 'Arraste uma ponta do topo para o outro lado' }</span>
                     </div>
 
                     <div className="card-pack-reward" aria-hidden={ phase !== 'revealed' }>
@@ -419,7 +435,7 @@ export const CardPackOpeningView: FC<{}> = props =>
                         <svg className="card-pack-artwork-surface" viewBox="0 0 205 285" preserveAspectRatio="none" aria-hidden="true">
                             <defs>
                                 { renderPackageArtwork('card-pack-complete-artwork') }
-                                { tearProgress > 0 && renderPackageArtwork('card-pack-lifted-artwork', tearProgress) }
+                                { tearProgress > 0 && renderPackageArtwork('card-pack-lifted-artwork', tearProgress, tearDirection) }
                                 <clipPath id="card-pack-lifted-top-clip" clipPathUnits="userSpaceOnUse">
                                     <path d={ liftedTopClipPath } />
                                 </clipPath>
@@ -428,6 +444,9 @@ export const CardPackOpeningView: FC<{}> = props =>
                                 </clipPath>
                                 <clipPath id="card-pack-edge-clip" clipPathUnits="userSpaceOnUse">
                                     <rect x={ roundPointValue(edgeClipStart) } y="-60" width={ roundPointValue(edgeClipWidth) } height="180" />
+                                </clipPath>
+                                <clipPath id="card-pack-sealed-edge-clip" clipPathUnits="userSpaceOnUse">
+                                    <rect x={ roundPointValue(sealedClipStart) } y="0" width={ roundPointValue(sealedClipWidth) } height="72" />
                                 </clipPath>
                             </defs>
 
@@ -451,13 +470,13 @@ export const CardPackOpeningView: FC<{}> = props =>
                                         </g>
                                     </g>
                                 </> }
-                            { tearFront > PERFORATION_INSET &&
-                                <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } /> }
+                            { cutProgress < 1 &&
+                                <path className="card-pack-sealed-perforation" d={ sealedPerforationPath } clipPath="url(#card-pack-sealed-edge-clip)" /> }
                         </svg>
                         <button
                             type="button"
                             className="card-pack-tear-strip"
-                            aria-label="Segure o topo e arraste para a esquerda para rasgar o pacote"
+                            aria-label="Segure uma ponta do topo e arraste para o lado oposto para rasgar o pacote"
                             disabled={ (phase === 'opening') || (phase === 'revealed') }
                             onPointerDown={ onTearPointerDown }
                             onPointerMove={ onTearPointerMove }

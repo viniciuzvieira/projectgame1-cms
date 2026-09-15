@@ -1,6 +1,10 @@
 export const PACK_WIDTH = 205;
 export const PACK_HEIGHT = 285;
+export const COMPLETE_TEAR_PROGRESS = 1.12;
 const PEEL_HEIGHT = 30;
+const PEEL_RELEASE_HEIGHT = 8;
+
+export type TearDirection = 'left-to-right' | 'right-to-left';
 
 interface Point
 {
@@ -15,16 +19,29 @@ interface PathPoint extends Point
 
 const sampledPaths = new Map<string, PathPoint[]>();
 
-export const getPeelOffset = (x: number, progress: number): number =>
+export const getTearFront = (progress: number, direction: TearDirection = 'right-to-left'): number =>
 {
-    const front = PACK_WIDTH * (1 - progress);
+    const cutProgress = Math.max(0, Math.min(1, progress));
 
-    if((progress <= 0) || (x <= front)) return 0;
+    return PACK_WIDTH * (direction === 'left-to-right' ? cutProgress : 1 - cutProgress);
+}
 
-    const amount = Math.min(1, (x - front) / (PACK_WIDTH - front));
+export const getPeelOffset = (x: number, progress: number, direction: TearDirection = 'right-to-left'): number =>
+{
+    const cutProgress = Math.max(0, Math.min(1, progress));
+
+    if(cutProgress <= 0) return 0;
+
+    const front = getTearFront(progress, direction);
+    const distance = direction === 'left-to-right' ? front - x : x - front;
+    const amount = Math.max(0, Math.min(1, distance / (PACK_WIDTH * cutProgress)));
+    const releaseProgress = Math.max(0, Math.min(1, (progress - 1) / (COMPLETE_TEAR_PROGRESS - 1)));
+
+    // Extra travel only after the cut reaches the far edge releases the last attached tip.
+    const releaseLift = PEEL_RELEASE_HEIGHT * releaseProgress * releaseProgress * (3 - 2 * releaseProgress);
 
     // Zero slope at the attached end; the same offset bends every layer of the artwork.
-    return -PEEL_HEIGHT * progress * amount * amount;
+    return -PEEL_HEIGHT * cutProgress * amount * amount - releaseLift;
 }
 
 // These artwork paths use absolute M/L/H/V/C/Z commands. Sample geometry, never image strips.
@@ -111,12 +128,12 @@ const samplePath = (path: string): PathPoint[] =>
     return points;
 }
 
-export const bendPackagePath = (path: string, progress: number): string =>
+export const bendPackagePath = (path: string, progress: number, direction: TearDirection = 'right-to-left'): string =>
 {
     if(progress <= 0) return path;
 
     return samplePath(path).map(point => point.command === 'Z' ? 'Z' :
-        `${ point.command } ${ point.x.toFixed(2) } ${ (point.y + getPeelOffset(point.x, progress)).toFixed(2) }`).join(' ');
+        `${ point.command } ${ point.x.toFixed(2) } ${ (point.y + getPeelOffset(point.x, progress, direction)).toFixed(2) }`).join(' ');
 }
 
 export const getPackageColorBand = (offset: number): string =>
