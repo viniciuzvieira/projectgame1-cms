@@ -34,6 +34,8 @@ try {
     $created = $client()->post($base.'/decks', ['name' => $name]);
     $check($created->status() === 200, 'Create disposable deck');
     $deckId = $created->json('deck_id');
+    $duplicate = $client()->post($base.'/decks', ['name' => $name]);
+    $check($duplicate->status() === 422, 'Reject duplicate active deck name');
     $path = $base.'/decks/'.$deckId;
     $added = $client()->post($path.'/cards/'.$cardId, ['_method' => 'PUT', 'quantity' => 1]);
     $check($added->status() === 200, 'Add card using POST + PUT override');
@@ -48,11 +50,16 @@ try {
     $removed = $client()->post($path.'/cards/'.$cardId, ['_method' => 'PUT', 'quantity' => 0]);
     $check($removed->status() === 200, 'Remove membership using PUT override');
     $deleted = $client()->post($path, ['_method' => 'DELETE']);
-    $check($deleted->status() === 200, 'Delete disposable deck using DELETE override');
+    $check($deleted->status() === 200 && collect($deleted->json('trashed_decks'))->contains('id', $deckId), 'Recycle disposable deck using DELETE override');
+    $duplicate = $client()->post($base.'/decks', ['name' => $name.' edited']);
+    $check($duplicate->status() === 422, 'Reject duplicate recycled deck name');
+    $restored = $client()->post($path.'/restore', ['_method' => 'PUT']);
+    $check($restored->status() === 200 && collect($restored->json('decks'))->contains('id', $deckId), 'Restore disposable deck using PUT override');
+    $client()->post($path, ['_method' => 'DELETE']);
     $final = $client()->get($base);
     $check($final->json('cards') === $cards && $final->json('decks') === $initial->json('decks'), 'Original cards and decks preserved');
 } finally {
-    $leftover = App\Models\UserCardDeck::where('user_id', $user->id)->whereIn('name', [$name, $name.' edited'])->first();
-    if ($leftover) app(App\Services\CardDeckService::class)->delete($user->id, $leftover->id);
+    $leftover = App\Models\UserCardDeck::withTrashed()->where('user_id', $user->id)->whereIn('name', [$name, $name.' edited'])->first();
+    if ($leftover) $leftover->forceDelete();
     $session->getHandler()->destroy($session->getId());
 }

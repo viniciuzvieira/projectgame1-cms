@@ -31,7 +31,14 @@ class CardCollectionService
             ->with('card')->orderByDesc('updated_at')->get()
             ->map(fn ($item) => $this->cardData($item->card) + ['quantity' => $item->quantity]);
 
-        return ['packs' => $packs, 'cards' => $cards, 'decks' => app(CardDeckService::class)->listing($userId)];
+        $decks = app(CardDeckService::class);
+
+        return [
+            'packs' => $packs,
+            'cards' => $cards,
+            'decks' => $decks->listing($userId),
+            'trashed_decks' => $decks->trashedListing($userId),
+        ];
     }
 
     public function open(int $userId, int $packId, string $requestId): CardPackOpening

@@ -20,8 +20,9 @@
     --desktop-shadow: #242424;
     --desktop-header: #575757;
     --resource-segment: #d2c078;
-    --resource-track-background: linear-gradient(#203c65 0 1px, #152b4b 1px 11px, #0c1d35 11px 13px);
+    --resource-track-color: #102b4b;
     --resource-track-image-opacity: 0;
+    --resource-frame-filter: hue-rotate(-35deg) saturate(1.15) brightness(.68);
     --desktop-bevel: inset 1px 1px var(--desktop-highlight), inset -1px -1px var(--desktop-shadow);
 }
 
@@ -46,8 +47,9 @@ html[data-game-theme='purple'] .cyber-retro-ui {
     --desktop-shadow: #201c29;
     --desktop-header: #69475f;
     --resource-segment: #d2c078;
-    --resource-track-background: transparent;
+    --resource-track-color: transparent;
     --resource-track-image-opacity: 1;
+    --resource-frame-filter: none;
 }
 
 html[data-game-theme='light'] .cyber-retro-ui {
@@ -71,8 +73,9 @@ html[data-game-theme='light'] .cyber-retro-ui {
     --desktop-shadow: #a88c81;
     --desktop-header: #cf9295;
     --resource-segment: #477fa3;
-    --resource-track-background: transparent;
+    --resource-track-color: transparent;
     --resource-track-image-opacity: 1;
+    --resource-frame-filter: none;
 }
 
 .game-pixel-icon { width: 28px; height: 28px; flex-shrink: 0; vertical-align: middle; }
@@ -116,8 +119,9 @@ html[data-game-theme='light'] .cyber-retro-ui {
         .collection-browser-tabs { min-height: calc(var(--collection-tab-height) + 6px); padding: 6px 0 0; align-items: stretch; gap: 3px; border: 0; border-radius: 9px 9px 0 0; background: var(--retro-frame-dark); }
         .collection-browser-tabs .collection-tabs {
             gap: 2px; flex: 0 1 auto; align-items: stretch;
-            button {
-                flex: 0 1 158px; width: 158px; height: var(--collection-tab-height); min-width: 0; max-width: 188px; margin-bottom: -1px; padding: 8px 13px 9px; border: 1px solid var(--retro-line); border-radius: 9px 9px 0 0; background: var(--retro-frame-dark); color: var(--retro-muted); box-shadow: inset 0 1px var(--desktop-highlight);
+            .collection-tab-shell { flex: 0 1 158px; width: 158px; max-width: 188px; }
+            .collection-tab-button {
+                width: 100%; height: var(--collection-tab-height); min-width: 0; margin-bottom: -1px; padding: 8px 13px 9px; border: 1px solid var(--retro-line); border-radius: 9px 9px 0 0; background: var(--retro-frame-dark); color: var(--retro-muted); box-shadow: inset 0 1px var(--desktop-highlight);
                 &[aria-selected='true'] {
                     background: var(--desktop-chrome); color: var(--retro-text); border-bottom-color: var(--desktop-chrome); box-shadow: inset 0 1px var(--desktop-highlight);
                     // Cover the panel's top rule only underneath the selected tab.
@@ -127,8 +131,9 @@ html[data-game-theme='light'] .cyber-retro-ui {
                 .collection-tab-count { background: var(--desktop-field); color: var(--desktop-accent); }
             }
         }
+        .collection-tab-shell.is-closable .collection-tab-button { padding-right: 34px; }
         .collection-new-tab { height: var(--collection-tab-height); flex-basis: 40px; margin-bottom: -1px; border: 1px solid var(--retro-line); border-radius: 9px 9px 0 0; background: var(--retro-frame-dark); box-shadow: inset 0 1px var(--desktop-highlight); color: var(--retro-text); &:hover:not(:disabled) { background: var(--retro-frame); } }
-        .collection-browser-close { align-self: flex-end; margin: 0 4px 5px auto; height: 30px; flex-basis: 30px; }
+        .collection-browser-close { align-self: flex-end; margin: 0 10px 10px auto; height: 30px; flex-basis: 30px; }
         .collection-browser-panel { border: 1px solid var(--retro-line); border-radius: 0; background: rgba(var(--desktop-panel), .95); }
         .collection-browser-panel .collection-tools { padding: 8px; gap: 8px; flex-wrap: nowrap; background: var(--desktop-chrome); border-bottom-color: var(--retro-line); }
         .browser-reload { height: 36px; width: 36px; flex: 0 0 36px; padding: 0; font-size: 27px; line-height: 1; }
@@ -148,14 +153,16 @@ html[data-game-theme='light'] .cyber-retro-ui {
         .card-pack-stage { background: radial-gradient(ellipse at center, color-mix(in srgb, var(--desktop-accent) 8%, transparent), transparent 70%), repeating-linear-gradient(0deg, transparent 0 29px, #a0a0a00b 29px 30px); box-shadow: none; &::after { background: none; border-color: var(--retro-line); opacity: .2; } }
         .card-pack-stage-heading { text-shadow: none; }
         .collection-deck-controls, .collection-deck-create, .collection-deck-library, .collection-deck-source, .collection-deck-destination, .collection-deck-heading, .collection-deck-settings { background: transparent; border-color: var(--retro-line); color: var(--retro-text); }
-        .collection-deck-tile { background: transparent; border: 1px solid transparent; box-shadow: none; color: var(--retro-text); &:hover:not(:disabled) { background: var(--desktop-selection); border-color: var(--desktop-accent); } strong { color: var(--retro-text); } }
+        .collection-deck-tile { padding: 6px; border: 1px solid transparent; border-radius: 1px; background: transparent; box-shadow: none; color: var(--retro-text); &:hover:not(:disabled) { background: var(--desktop-selection); border-color: var(--desktop-accent); } strong { color: var(--retro-text); } }
         .collection-deck-tile small, .collection-deck-open, .collection-deck-footer { color: var(--retro-muted); }
-        .collection-deck-cover.collection-folder { position: relative; height: 115px; width: 136px; margin-inline: auto; background: transparent; border: 0; box-shadow: none; overflow: visible; > .game-pixel-icon { position: static; width: 96px; height: 96px; transform: none; filter: none; } }
-        .collection-folder-count { position: absolute; bottom: 22px; right: 24px; min-width: 22px; padding: 1px 4px; border: 1px solid #25251f; background: #ffe5a0; color: #48311f; box-shadow: inset 1px 1px #fff3ce, 1px 1px #25251f; text-align: center; font-weight: 700; font-size: 13px; line-height: 18px; }
-        .collection-deck-list { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+        .collection-deck-cover.collection-folder, .collection-deck-cover.collection-trash { position: relative; width: 92px; height: 80px; margin: 0 auto 4px; background: transparent; border: 0; box-shadow: none; overflow: visible; > .game-pixel-icon { position: static; width: 72px; height: 72px; transform: none; filter: none; } }
+        .collection-folder-count { position: absolute; right: 5px; bottom: 7px; min-width: 20px; padding: 0 3px; border: 1px solid #25251f; background: #ffe5a0; color: #48311f; box-shadow: inset 1px 1px #fff3ce, 1px 1px #25251f; text-align: center; font-weight: 700; font-size: 12px; line-height: 17px; }
+        .collection-folder-primary { left: 2px; top: 2px; font-size: 9px; }
+        .collection-deck-list { grid-template-columns: repeat(auto-fill, 116px); gap: 10px; }
+        .collection-deck-trash-tile { width: min(116px, 100%); }
         .collection-deck-card { background: rgba(var(--desktop-panel), .22); border-color: var(--retro-line); color: var(--retro-text); }
         .collection-feedback { background: var(--desktop-selection); color: var(--retro-text); border-color: var(--retro-line); }
-        .collection-browser-tabs .collection-tabs button { font-size: 16px; .collection-tab-count { font-size: 13px; } }
+        .collection-browser-tabs .collection-tabs .collection-tab-button { font-size: 16px; .collection-tab-count { font-size: 13px; } }
         .collection-section-heading { font-size: 14px; letter-spacing: .6px; span { font-size: 13px; } }
         .collection-eyebrow { font-size: 13px; letter-spacing: 1px; }
         .collection-tile strong { font-size: 16px; }
@@ -202,12 +209,14 @@ html[data-game-theme='light'] .cyber-retro-ui {
     .resource-name { grid-column: 2; display: block; margin-bottom: 1px; font-size: 14px; line-height: 16px; color: var(--retro-text); }
     .resource-capacity-bar { grid-column: 2; position: relative; width: 100%; height: 32px; }
     .resource-capacity-art { position: absolute; left: 0; top: 0; height: 32px; pointer-events: none; image-rendering: pixelated; }
+    // A theme-owned layer covers the original sprite's inner bevel, keeping the track one flat color.
+    .resource-capacity-art::after { content: ''; position: absolute; z-index: 2; left: 7px; top: 8px; width: calc(100% - 15px); height: 14px; background: var(--resource-track-color); }
     // Nine-slice the original frame so resizing never exposes its baked-in yellow cells.
-    .resource-capacity-frame { position: absolute; inset: 0; border-style: solid; border-width: 9px 8px 10px 7px; border-image-slice: 9 8 10 7; border-image-repeat: stretch; }
-    .resource-capacity-empty { position: absolute; left: 7px; top: 9px; width: calc(100% - 15px); height: 13px; overflow: hidden; background: var(--resource-track-background); image { opacity: var(--resource-track-image-opacity); } }
+    .resource-capacity-frame { position: absolute; inset: 0; border-style: solid; border-width: 9px 8px 10px 7px; border-image-slice: 9 8 10 7; border-image-repeat: stretch; filter: var(--resource-frame-filter); }
+    .resource-capacity-empty { position: absolute; left: 7px; top: 9px; width: calc(100% - 15px); height: 13px; overflow: hidden; background: var(--resource-track-color); image { opacity: var(--resource-track-image-opacity); } }
     // Reuse one 7x12 pixel crop from the original PNG for every cell, tinting only it.
-    .resource-capacity-fill { position: absolute; top: 9px; height: 12px; display: flex; > span { flex: none; visibility: hidden; background: var(--resource-segment); mask-image: url('../../images/retro/resource-capacity-bar.png'); mask-mode: luminance; mask-position: -8px -9px; mask-repeat: no-repeat; mask-size: 216px 32px; &.is-filled { visibility: visible; } } }
-    .resource-capacity-loader-track { position: absolute; top: 9px; height: 12px; overflow: hidden; }
+    .resource-capacity-fill { position: absolute; z-index: 3; top: 9px; height: 12px; display: flex; > span { flex: none; visibility: hidden; background: var(--resource-segment); mask-image: url('../../images/retro/resource-capacity-bar.png'); mask-mode: luminance; mask-position: -8px -9px; mask-repeat: no-repeat; mask-size: 216px 32px; &.is-filled { visibility: visible; } } }
+    .resource-capacity-loader-track { position: absolute; z-index: 3; top: 9px; height: 12px; overflow: hidden; }
     .resource-capacity-loader { position: absolute; top: 0; left: 0; display: flex; animation: resource-capacity-loading 1.25s linear infinite; will-change: transform; > span { flex: none; background: var(--resource-segment); mask-image: url('../../images/retro/resource-capacity-bar.png'); mask-mode: luminance; mask-position: -8px -9px; mask-repeat: no-repeat; mask-size: 216px 32px; } }
     .resource-value { grid-column: 2; display: block; padding-top: 2px; text-align: right; font-family: 'Lucida Console', 'Courier New', monospace; font-variant-numeric: tabular-nums; font-size: 12px; line-height: 15px; color: var(--retro-muted); white-space: nowrap; }
     .resource-retry { display: block; margin: 2px auto; font-size: 14px; background: var(--desktop-field); color: var(--retro-text); border: 1px solid var(--retro-line); }
@@ -254,7 +263,7 @@ html[data-game-theme='light'] .cyber-retro-ui {
         .resource-icon { width: 24px; height: 24px; }
         .resource-name { font-size: 13px; line-height: 15px; }
         .resource-value { font-size: 11px; line-height: 14px; }
-        .nitro-card-collection { .collection-browser-tabs .collection-tabs button { min-width: 0; gap: 4px; padding-inline: 6px; font-size: 14px; .game-pixel-icon { width: 16px; height: 16px; flex-basis: 16px; } .collection-tab-count { padding-inline: 3px; } } }
+        .nitro-card-collection { .collection-browser-tabs .collection-tabs .collection-tab-button { min-width: 0; gap: 4px; padding-inline: 6px; font-size: 14px; .game-pixel-icon { width: 16px; height: 16px; flex-basis: 16px; } .collection-tab-count { padding-inline: 3px; } } .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 27px; } }
         .game-settings-layout { grid-template-columns: 130px minmax(0, 1fr); }
         .game-settings-panel { padding: 18px 15px; }
         .game-settings-nav { padding: 10px 5px; button { gap: 5px; padding: 8px 5px; font-size: 14px; .game-pixel-icon { width: 22px; } } }
@@ -274,7 +283,7 @@ html[data-game-theme='light'] .cyber-retro-ui {
         .game-settings-mark { display: none; }
         .game-settings-panel { flex: 1; min-height: 0; }
         .theme-preview { height: 50px; }
-        .nitro-card-collection { max-width: calc(100vw - 12px); .collection-address > .game-pixel-icon { display: none; } .collection-browser-panel .collection-tools { gap: 5px; padding: 6px; } .collection-address { gap: 3px; padding-left: 5px; input, .collection-address-prefix { font-size: 15px; } } .collection-orb { width: 28px; flex-basis: 28px; } .collection-browser-tabs .collection-tabs button { padding-inline: 6px; } }
+        .nitro-card-collection { max-width: calc(100vw - 12px); .collection-address > .game-pixel-icon { display: none; } .collection-browser-panel .collection-tools { gap: 5px; padding: 6px; } .collection-address { gap: 3px; padding-left: 5px; input, .collection-address-prefix { font-size: 15px; } } .collection-orb { width: 28px; flex-basis: 28px; } .collection-browser-tabs .collection-tabs .collection-tab-button { padding-inline: 6px; } .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 27px; } }
         .skill-tree-detail { padding: 12px; gap: 12px; p { font-size: 13px; } }
     }
 }
@@ -295,7 +304,7 @@ html[data-game-theme='dark'] .cyber-retro-ui {
     }
     .skill-tree-scroll { background: repeating-linear-gradient(0deg, transparent 0 23px, #d6d6d60c 23px 24px), repeating-linear-gradient(90deg, transparent 0 23px, #d6d6d60c 23px 24px); }
 }
-html[data-game-theme='light'] .cyber-retro-ui .nitro-card-collection .collection-browser-tabs .collection-tabs button:not([aria-selected='true']) { background: #c9aca0; color: #4e3949; }
+html[data-game-theme='light'] .cyber-retro-ui .nitro-card-collection .collection-browser-tabs .collection-tabs .collection-tab-button:not([aria-selected='true']) { background: #c9aca0; color: #4e3949; }
 @keyframes resource-capacity-loading {
     from { transform: translateX(var(--resource-loader-start)); }
     to { transform: translateX(var(--resource-loader-end)); }

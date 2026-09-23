@@ -5,7 +5,7 @@ import { AddEventLinkTracker, RemoveLinkEventTracker } from '../../api';
 import { LayoutAvatarImageView, NitroCardContentView, NitroCardView } from '../../common';
 import { closeGameContextMenu, openGameContextMenu } from '../game-context-menu/GameContextMenu';
 import { CardCollection, CardCollectionError, CollectionCard, CollectionPack, createCardDeck, createOpeningRequestId, loadCardCollection, openCollectionPack, setCardDeckQuantity } from './CardCollectionApi';
-import { CardDecksView, RunDeckMutation } from './CardDecksView';
+import { CardDecksView, CardDeckTrashView, RunDeckMutation } from './CardDecksView';
 import { CollectionCardArtView } from './CollectionCardArtView';
 import { CollectionOrbView } from './CollectionOrbView';
 import { CardPackOpeningView } from './CardPackOpeningView';
@@ -16,7 +16,7 @@ import { DeviceCardControls } from './DeviceCardControls';
 const searchable = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const collectionTabs = ['packs', 'cards', 'decks', 'shop'] as const;
 type CoreCollectionTab = typeof collectionTabs[number];
-type CollectionTab = CoreCollectionTab | `new-${ number }`;
+type CollectionTab = CoreCollectionTab | 'trash' | `new-${ number }`;
 
 const tabDetails: Record<CoreCollectionTab, { label: string; icon: string }> = {
     packs: { label: 'Pacotes', icon: 'packs' },
@@ -31,7 +31,7 @@ export const CardCollectionView: FC = () =>
     const [ visible, setVisible ] = useState(false);
     const [ tab, setTab ] = useState<CollectionTab>('packs');
     const [ customTabs, setCustomTabs ] = useState<CollectionTab[]>([]);
-    const [ data, setData ] = useState<CardCollection>({ packs: [], cards: [], decks: [] });
+    const [ data, setData ] = useState<CardCollection>({ packs: [], cards: [], decks: [], trashed_decks: [] });
     const [ selectedPackId, setSelectedPackId ] = useState<number>(null);
     const [ selectedCardId, setSelectedCardId ] = useState<number>(null);
     const [ selectedDeckId, setSelectedDeckId ] = useState<number>(null);
@@ -149,7 +149,7 @@ export const CardCollectionView: FC = () =>
             const result = await operation();
             loadVersion.current++;
             setLoading(false);
-            setData(current => ({ ...current, decks: result.decks }));
+            setData(current => ({ ...current, decks: result.decks, trashed_decks: result.trashed_decks }));
             setNotice(message);
             return result;
         }
@@ -170,10 +170,11 @@ export const CardCollectionView: FC = () =>
     const packCount = data.packs.reduce((sum, pack) => sum + pack.quantity, 0);
     const cardCount = data.cards.reduce((sum, card) => sum + (card.quantity || 0), 0);
     const decks = data.decks || [];
+    const trashedDecks = data.trashed_decks || [];
     const selectedDeck = decks.find(deck => deck.id === selectedDeckId);
     const activeTabs = [ ...collectionTabs, ...customTabs ];
     const tabPath = tab.startsWith('new-') ? 'new-tab' : tab;
-    const searchLabel = tab === 'packs' ? t("Buscar pacote pelo nome") : tab === 'cards' || selectedDeck ? t("Buscar carta pelo nome") : tab === 'decks' ? t("Buscar deck pelo nome") : tab === 'shop' ? t('Buscar na loja') : t('Pesquisar nesta aba');
+    const searchLabel = tab === 'packs' ? t("Buscar pacote pelo nome") : tab === 'cards' || selectedDeck ? t("Buscar carta pelo nome") : tab === 'decks' ? t("Buscar deck pelo nome") : tab === 'shop' ? t('Buscar na loja') : tab === 'trash' ? t('Pesquisar na lixeira') : t('Pesquisar nesta aba');
     const disabled = busy || savingDeck;
 
     const changeTab = (next: CollectionTab) =>
@@ -193,6 +194,22 @@ export const CardCollectionView: FC = () =>
         changeTab(next);
     };
 
+    const openTrash = () =>
+    {
+        if(disabled) return;
+        setCustomTabs(current => current.includes('trash') ? current : [ ...current, 'trash' ]);
+        changeTab('trash');
+    };
+
+    const closeTab = (closing: CollectionTab) =>
+    {
+        if(disabled || !customTabs.includes(closing)) return;
+        setCustomTabs(current => current.filter(item => item !== closing));
+        if(tab !== closing) return;
+        const index = activeTabs.indexOf(closing);
+        changeTab(closing === 'trash' ? 'decks' : activeTabs[index - 1] || 'packs');
+    };
+
     const selectDeck = (id: number) =>
     {
         closeGameContextMenu();
@@ -209,18 +226,18 @@ export const CardCollectionView: FC = () =>
         const bounds = event.currentTarget.getBoundingClientRect();
         const deckItems = decks.map(deck =>
         {
-            const count = deck.cards.find(item => item.id === card.id)?.quantity || 0;
+            const added = deck.cards.some(item => item.id === card.id);
             return {
-                id: String(deck.id), label: `${ deck.name }${ count > 0 ? ` (${ t('já adicionado') })` : '' }${ deck.is_primary ? ` / ${ t('Principal') }` : '' }`,
+                id: String(deck.id), label: `${ deck.name }${ added ? ` (${ t('já adicionado') })` : '' }${ deck.is_primary ? ` / ${ t('Principal') }` : '' }`,
                 icon: 'folder',
-                disabled: count >= (card.quantity || 0),
-                action: () => { mutateDeck(() => setCardDeckQuantity(deck.id, card.id, count + 1), t('Carta adicionada ao deck {name}.', { name: deck.name })); }
+                disabled: added,
+                action: added ? undefined : () => { mutateDeck(() => setCardDeckQuantity(deck.id, card.id, 1), t('Carta adicionada ao deck {name}.', { name: deck.name })); }
             };
         });
         deckItems.push({ id: 'new-deck', label: t('Novo deck'), icon: 'create', disabled: decks.length >= 50, action: () => { setNewDeckName(t('Novo deck')); setNewDeckCard(card); } });
         openGameContextMenu({ x: event.clientX || bounds.left, y: event.clientY || bounds.bottom, title: t(card.name), items: [
             { id: 'add', icon: 'add', label: t("Adicionar deck"), children: deckItems },
-            { id: 'sell', icon: 'sell', label: t('Vender'), disabled: true },
+            { id: 'market', icon: 'shop', label: t('Mercado'), disabled: true },
             { id: 'about', icon: 'about', label: t('Sobre'), action: () => { setTab('cards'); setSelectedCardId(card.id); } }
         ] });
     };
@@ -232,7 +249,7 @@ export const CardCollectionView: FC = () =>
         const bounds = event.currentTarget.getBoundingClientRect();
         openGameContextMenu({ x: event.clientX || bounds.left, y: event.clientY || bounds.bottom, title: t(pack.name), items: [
             { id: 'open', icon: 'open', label: t('Abrir'), disabled: pack.quantity < 1, action: () => { setTab('packs'); setSelectedPackId(pack.id); } },
-            { id: 'sell', icon: 'sell', label: t('Vender'), disabled: true },
+            { id: 'market', icon: 'shop', label: t('Mercado'), disabled: true },
             { id: 'about', icon: 'about', label: t('Sobre'), action: () => { setTab('packs'); setSelectedPackId(pack.id); } }
         ] });
     };
@@ -264,11 +281,15 @@ export const CardCollectionView: FC = () =>
                 } }>
                     { activeTabs.map(item =>
                     {
-                        const details = item.startsWith('new-') ? { label: 'Nova aba', icon: 'new-tab' } : tabDetails[item as CoreCollectionTab];
-                        const count = item === 'packs' ? packCount : item === 'cards' ? cardCount : item === 'decks' ? decks.length : null;
-                        return <button key={ item } id={ `collection-tab-${ item }` } role="tab" aria-controls="collection-panel" aria-selected={ tab === item } tabIndex={ tab === item ? 0 : -1 } disabled={ disabled } onMouseDown={ event => event.stopPropagation() } onClick={ () => changeTab(item) }>
-                            <GameIcon name={ details.icon } /><span className="collection-tab-label">{ t(details.label) }</span>{ count !== null && <span className="collection-tab-count">{ count }</span> }
-                        </button>;
+                        const closable = item === 'trash' || item.startsWith('new-');
+                        const details = item === 'trash' ? { label: 'Lixeira', icon: 'trash' } : item.startsWith('new-') ? { label: 'Nova aba', icon: 'new-tab' } : tabDetails[item as CoreCollectionTab];
+                        const count = item === 'packs' ? packCount : item === 'cards' ? cardCount : item === 'decks' ? decks.length : item === 'trash' ? trashedDecks.length : null;
+                        return <div key={ item } className={ `collection-tab-shell${ closable ? ' is-closable' : '' }` }>
+                            <button className="collection-tab-button" id={ `collection-tab-${ item }` } role="tab" aria-controls="collection-panel" aria-selected={ tab === item } tabIndex={ tab === item ? 0 : -1 } disabled={ disabled } onMouseDown={ event => event.stopPropagation() } onClick={ () => changeTab(item) }>
+                                <GameIcon name={ details.icon } /><span className="collection-tab-label">{ t(details.label) }</span>{ count !== null && <span className="collection-tab-count">{ count }</span> }
+                            </button>
+                            { closable && <button type="button" className="collection-tab-close" disabled={ disabled } aria-label={ `${ t('Fechar') } ${ t(details.label) }` } onMouseDown={ event => event.stopPropagation() } onClick={ () => closeTab(item) }>×</button> }
+                        </div>;
                     }) }
                 </div>
                 <button type="button" className="collection-new-tab" disabled={ disabled } onMouseDown={ event => event.stopPropagation() } onClick={ addTab } aria-label={ t('Nova aba') }>+</button>
@@ -277,11 +298,11 @@ export const CardCollectionView: FC = () =>
             <div id="collection-panel" role="tabpanel" aria-labelledby={ `collection-tab-${ tab }` } className="collection-browser-panel">
                 <form className="collection-tools" onSubmit={ event => { event.preventDefault(); document.getElementById('collection-search')?.focus(); } }>
                     <button type="button" className="collection-refresh browser-reload" disabled={ disabled || loading } onClick={ refresh } title={ t('Atualizar coleção') } aria-label={ t('Atualizar coleção') }><span aria-hidden="true">↻</span></button>
-                    <div className="collection-address"><GameIcon name={ tab === 'cards' ? 'cards' : tab === 'shop' ? 'shop' : tab === 'packs' ? 'packs' : 'folder' } /><label className="collection-search-field" htmlFor="collection-search"><span className="collection-address-prefix">ch://{ tabPath }/</span><input id="collection-search" type="search" aria-label={ searchLabel } placeholder={ `${ searchLabel }...` } value={ query } onChange={ event => setQuery(event.target.value) } /></label><CollectionOrbView /><button type="submit" className="collection-search-button" title={ t('Pesquisar') } aria-label={ t('Pesquisar') }><span className="collection-search-icon" aria-hidden="true" /></button></div>
+                    <div className="collection-address"><GameIcon name={ tab === 'cards' ? 'cards' : tab === 'shop' ? 'shop' : tab === 'trash' ? 'trash' : tab === 'packs' ? 'packs' : 'folder' } /><label className="collection-search-field" htmlFor="collection-search"><span className="collection-address-prefix">ch://{ tabPath }/</span><input id="collection-search" type="search" aria-label={ searchLabel } placeholder={ `${ searchLabel }...` } value={ query } onChange={ event => setQuery(event.target.value) } /></label><CollectionOrbView /><button type="submit" className="collection-search-button" title={ t('Pesquisar') } aria-label={ t('Pesquisar') }><span className="collection-search-icon" aria-hidden="true" /></button></div>
                 </form>
                 { error && <div role="alert" className="collection-error">{ error } <button onClick={ refresh } disabled={ loading || disabled }>{ t("Atualizar coleção") }</button></div> }
                 { notice && <div className="collection-feedback" role="status">{ notice }</div> }
-                { tab === 'decks' ? <CardDecksView decks={ decks } cards={ data.cards } query={ deferredQuery } selectedDeck={ selectedDeck } onSelectDeck={ selectDeck } disabled={ disabled || loading } mutate={ mutateDeck } /> : (tab === 'packs' || tab === 'cards') ? <div className="collection-columns">
+                { tab === 'decks' ? <CardDecksView decks={ decks } cards={ data.cards } query={ deferredQuery } selectedDeck={ selectedDeck } onSelectDeck={ selectDeck } onOpenTrash={ openTrash } disabled={ disabled || loading } mutate={ mutateDeck } /> : tab === 'trash' ? <CardDeckTrashView decks={ trashedDecks } query={ deferredQuery } disabled={ disabled || loading } mutate={ mutateDeck } /> : (tab === 'packs' || tab === 'cards') ? <div className="collection-columns">
                     <section className="collection-library" aria-busy={ loading }>
                         <div className="collection-section-heading"><strong>{ tab === 'packs' ? t("SEUS PACOTES") : t("SUAS CARTAS") }</strong><span>{ tab === 'packs' ? t('{count} modelos', { count: packs.length }) : t('{count} descobertas', { count: cards.length }) }</span></div>
                         { loading && <p className="collection-notice" role="status">{ t("Carregando sua coleção...") }</p> }

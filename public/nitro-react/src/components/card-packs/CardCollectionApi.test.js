@@ -10,6 +10,7 @@ test.each([
     ['createCardDeck', ['Test'], '', undefined, { name: 'Test' }],
     ['renameCardDeck', [7, 'Renamed'], '/7', 'PATCH', { name: 'Renamed' }],
     ['deleteCardDeck', [7], '/7', 'DELETE', {}],
+    ['restoreCardDeck', [7], '/7/restore', 'PUT', {}],
     ['makePrimaryCardDeck', [7], '/7/primary', 'PUT', {}],
     ['setCardDeckQuantity', [7, 3, 1], '/7/cards/3', 'PUT', { quantity: 1 }],
     ['setCardDeckQuantity', [7, 3, 0], '/7/cards/3', 'PUT', { quantity: 0 }]

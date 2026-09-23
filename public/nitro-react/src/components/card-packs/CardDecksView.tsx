@@ -1,7 +1,7 @@
 import { t } from '../game-shell/GameLocale';
 import { FC, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react';
 import { openGameContextMenu } from '../game-context-menu/GameContextMenu';
-import { CollectionCard, CollectionDeck, createCardDeck, DeckMutationResult, deleteCardDeck, makePrimaryCardDeck, renameCardDeck, setCardDeckQuantity } from './CardCollectionApi';
+import { CollectionCard, CollectionDeck, createCardDeck, DeckMutationResult, deleteCardDeck, makePrimaryCardDeck, renameCardDeck, restoreCardDeck, setCardDeckQuantity } from './CardCollectionApi';
 import { CollectionCardArtView } from './CollectionCardArtView';
 import { GameIcon } from '../game-shell/GameIcon';
 
@@ -14,6 +14,7 @@ interface CardDecksViewProps
     query: string;
     selectedDeck?: CollectionDeck;
     onSelectDeck: (id: number) => void;
+    onOpenTrash: () => void;
     disabled: boolean;
     mutate: RunDeckMutation;
 }
@@ -21,7 +22,7 @@ interface CardDecksViewProps
 const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const cardCountLabel = (deck: CollectionDeck) =>
 {
-    const count = deck.cards.reduce((sum, card) => sum + card.quantity, 0);
+    const count = deck.cards.length;
     return t(count === 1 ? '1 carta' : '{count} cartas', { count });
 };
 
@@ -30,11 +31,11 @@ const DeckEditor: FC<{ deck: CollectionDeck } & Pick<CardDecksViewProps, 'cards'
     const [ name, setName ] = useState(deck.name);
     const [ confirmDelete, setConfirmDelete ] = useState(false);
     const filtered = cards.filter(card => normalize(t(card.name)).includes(normalize(query)));
-    const quantity = (cardId: number) => deck.cards.find(card => card.id === cardId)?.quantity || 0;
+    const hasCard = (cardId: number) => deck.cards.some(card => card.id === cardId);
     const update = (card: CollectionCard, count: number) => mutate(() => setCardDeckQuantity(deck.id, card.id, count), count === 0 ? t("Carta removida apenas deste deck.") : t("Deck atualizado. Sua coleção permanece intacta."));
     const removeDeck = async () =>
     {
-        const result = await mutate(() => deleteCardDeck(deck.id), t("Deck excluído. Nenhuma carta foi perdida."));
+        const result = await mutate(() => deleteCardDeck(deck.id), t("Deck movido para a lixeira. Nenhuma carta foi perdida."));
         if(result) onSelectDeck(null);
     };
     const menu = (event: MouseEvent<HTMLElement>, card: CollectionCard) =>
@@ -43,7 +44,7 @@ const DeckEditor: FC<{ deck: CollectionDeck } & Pick<CardDecksViewProps, 'cards'
         if(disabled) return;
         const bounds = event.currentTarget.getBoundingClientRect();
         openGameContextMenu({ x: event.clientX || bounds.left, y: event.clientY || bounds.bottom, title: t(card.name), items: [
-            { id: 'remove', label: t("Remover do deck"), action: () => { update(card, 0); } }
+            { id: 'remove-card', icon: 'trash', label: t("Remover do deck"), action: () => { update(card, 0); } }
         ] });
     };
     return <section className="collection-deck-editor" aria-label={ t('Editar deck {name}', { name: deck.name }) }>
@@ -73,12 +74,11 @@ const DeckEditor: FC<{ deck: CollectionDeck } & Pick<CardDecksViewProps, 'cards'
                     <div className="collection-deck-cards">
                         { filtered.map(card =>
                         {
-                            const count = quantity(card.id);
-                            const remaining = Math.max(0, card.quantity - count);
-                            return <button key={ card.id } type="button" className={ `collection-deck-pick collection-tile card-tile${ !remaining ? ' is-full' : '' }` } disabled={ disabled || !remaining } aria-label={ `Adicionar ${ t(card.name) } ao deck ${ deck.name }, ${ remaining } disponiveis` } onClick={ () => update(card, count + 1) }>
+                            const added = hasCard(card.id);
+                            return <button key={ card.id } type="button" className={ `collection-deck-pick collection-tile card-tile${ added ? ' is-full' : '' }` } disabled={ disabled || added } aria-label={ added ? `${ t(card.name) }, ${ t('já adicionado') }` : `Adicionar ${ t(card.name) } ao deck ${ deck.name }` } onClick={ () => update(card, 1) }>
                                 <CollectionCardArtView card={ card } />
-                                <strong>{ t(card.name) }</strong><small>{ count } / { card.quantity } { t('no deck') }</small>
-                                <span className="collection-deck-add-label">{ remaining ? t("+ Adicionar") : t("Todas no deck") }</span>
+                                <strong>{ t(card.name) }</strong><small>{ added ? t('já adicionado') : t('Disponível') }</small>
+                                <span className="collection-deck-add-label">{ added ? t('já adicionado') : t("+ Adicionar") }</span>
                             </button>;
                         }) }
                     </div>
@@ -93,9 +93,6 @@ const DeckEditor: FC<{ deck: CollectionDeck } & Pick<CardDecksViewProps, 'cards'
                         { deck.cards.map(card => <div key={ card.id } className="collection-deck-card card-tile" onContextMenu={ event => menu(event, card) }>
                             <CollectionCardArtView card={ card } /><strong>{ t(card.name) }</strong><small>{ t(card.series) }</small>
                             <div className="collection-deck-card-actions">
-                                <button type="button" aria-label={ `Remover uma copia de ${ t(card.name) } do deck` } disabled={ disabled } onClick={ () => update(card, card.quantity - 1) }>-</button>
-                                <span aria-label={ t('{count} cópias no deck', { count: card.quantity }) }>{ card.quantity }</span>
-                                <button type="button" aria-label={ `Adicionar uma copia de ${ t(card.name) } ao deck` } disabled={ disabled || card.quantity >= (cards.find(item => item.id === card.id)?.quantity || 0) } onClick={ () => update(card, card.quantity + 1) }>+</button>
                                 <button type="button" aria-label={ `Opcoes de ${ t(card.name) } no deck` } disabled={ disabled } onClick={ event => menu(event, card) }>...</button>
                             </div>
                         </div>) }
@@ -108,7 +105,7 @@ const DeckEditor: FC<{ deck: CollectionDeck } & Pick<CardDecksViewProps, 'cards'
     </section>;
 };
 
-export const CardDecksView: FC<CardDecksViewProps> = ({ decks, cards, query, selectedDeck, onSelectDeck, disabled, mutate }) =>
+export const CardDecksView: FC<CardDecksViewProps> = ({ decks, cards, query, selectedDeck, onSelectDeck, onOpenTrash, disabled, mutate }) =>
 {
     const [ creating, setCreating ] = useState(false);
     const [ name, setName ] = useState(t('Novo deck'));
@@ -143,13 +140,31 @@ export const CardDecksView: FC<CardDecksViewProps> = ({ decks, cards, query, sel
         setCreating(false);
         setName(t('Novo deck'));
     };
+    const shareDeck = (deck: CollectionDeck) =>
+    {
+        const cardNames = deck.cards.map(card => t(card.name)).join(', ');
+        const text = `${ deck.name }: ${ cardNames || t('Deck vazio') }`;
+        if(navigator.share) navigator.share({ title: deck.name, text }).catch(() => {});
+        else navigator.clipboard?.writeText(text).catch(() => {});
+    };
+    const deckMenu = (event: MouseEvent<HTMLElement>, deck: CollectionDeck) =>
+    {
+        event.preventDefault(); event.stopPropagation();
+        if(disabled) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        openGameContextMenu({ x: event.clientX || bounds.left, y: event.clientY || bounds.bottom, title: deck.name, items: [
+            { id: 'open', icon: 'open', label: t('Abrir'), action: () => onSelectDeck(deck.id) },
+            { id: 'share', icon: 'share', label: t('Compartilhar'), action: () => shareDeck(deck) },
+            { id: 'undo-deck', icon: 'trash', label: t('Desfazer deck'), action: () => { mutate(() => deleteCardDeck(deck.id), t('Deck movido para a lixeira. Nenhuma carta foi perdida.')); } }
+        ] });
+    };
 
     if(selectedDeck) return <DeckEditor key={ selectedDeck.id } deck={ selectedDeck } cards={ cards } query={ query } onSelectDeck={ onSelectDeck } disabled={ disabled } mutate={ mutate } />;
 
     return <div className="collection-decks-layout">
         <section className="collection-deck-library" aria-label={ t("SEUS DECKS") }>
             <div className="collection-deck-list">
-                { filtered.map(deck => <button type="button" className="collection-deck-tile" key={ deck.id } disabled={ disabled } aria-label={ t('Editar deck {name}', { name: deck.name }) } onClick={ () => onSelectDeck(deck.id) }>
+                { filtered.map(deck => <button type="button" className="collection-deck-tile" key={ deck.id } disabled={ disabled } aria-label={ t('Editar deck {name}', { name: deck.name }) } onClick={ () => onSelectDeck(deck.id) } onContextMenu={ event => deckMenu(event, deck) }>
                     <div className="collection-deck-cover collection-folder" aria-hidden="true">
                         <GameIcon name="folder" />
                         <span className="collection-folder-count">{ deck.cards.reduce((sum, card) => sum + card.quantity, 0) }</span>
@@ -168,6 +183,39 @@ export const CardDecksView: FC<CardDecksViewProps> = ({ decks, cards, query, sel
                 </form>
             </div>
             { !filtered.length && query && <p className="collection-notice">{ t("Nenhum deck com esse nome.") }</p> }
+            <button type="button" className="collection-deck-tile collection-deck-trash-tile" disabled={ disabled } aria-label={ t('Abrir Lixeira') } onClick={ onOpenTrash }>
+                <div className="collection-deck-cover collection-trash" aria-hidden="true"><GameIcon name="trash" /></div>
+                <strong>{ t('Lixeira') }</strong>
+            </button>
         </section>
     </div>;
+};
+
+export const CardDeckTrashView: FC<Pick<CardDecksViewProps, 'query' | 'disabled' | 'mutate'> & { decks: CollectionDeck[] }> = ({ decks, query, disabled, mutate }) =>
+{
+    const filtered = decks.filter(deck => normalize(deck.name).includes(normalize(query)));
+    const menu = (event: MouseEvent<HTMLElement>, deck: CollectionDeck) =>
+    {
+        event.preventDefault(); event.stopPropagation();
+        if(disabled) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        openGameContextMenu({ x: event.clientX || bounds.left, y: event.clientY || bounds.bottom, title: deck.name, items: [
+            { id: 'restore-deck', icon: 'restore', label: t('Restaurar para a coleção'), action: () => { mutate(() => restoreCardDeck(deck.id), t('Deck restaurado para a coleção.')); } }
+        ] });
+    };
+
+    return <section className="collection-deck-library collection-trash-library" aria-label={ t('Lixeira de decks') }>
+        <div className="collection-section-heading"><strong>{ t('LIXEIRA DE DECKS') }</strong><span>{ t('{count} decks excluídos', { count: filtered.length }) }</span></div>
+        <div className="collection-deck-list collection-trash-list">
+            { filtered.map(deck => <button type="button" className="collection-deck-tile collection-trashed-deck" key={ deck.id } disabled={ disabled } aria-label={ t('Deck excluído {name}', { name: deck.name }) } onContextMenu={ event => menu(event, deck) }>
+                <div className="collection-deck-cover collection-folder" aria-hidden="true">
+                    <GameIcon name="folder" />
+                    <span className="collection-folder-count">{ deck.cards.length }</span>
+                </div>
+                <strong>{ deck.name }</strong>
+            </button>) }
+        </div>
+        { !filtered.length && <div className="collection-empty"><GameIcon name="trash" /><h3>{ query ? t('Nenhum deck com esse nome.') : t('A lixeira está vazia.') }</h3><p>{ query ? t('Tente outro nome na busca.') : t('Os decks desfeitos aparecerão aqui.') }</p></div> }
+        { filtered.length > 0 && <footer className="collection-deck-footer collection-trash-footer">{ t('Use o botão direito em um deck para restaurá-lo.') }</footer> }
+    </section>;
 };

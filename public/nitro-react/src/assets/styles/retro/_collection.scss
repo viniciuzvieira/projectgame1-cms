@@ -11,7 +11,7 @@
     .collection-eyebrow { color: var(--retro-amber); letter-spacing: 1.9px; }
     .collection-totals strong { color: var(--retro-amber); font-family: var(--retro-font); }
     .collection-totals small { color: var(--retro-muted); }
-    .collection-tabs button {
+    .collection-tabs .collection-tab-button {
         border-color: #667d89;
         border-radius: 2px 2px 0 0;
         background: #304659;
@@ -60,8 +60,9 @@
     > .content-area { gap: 0; padding: 10px; }
     .collection-browser-tabs { display: flex; align-items: flex-end; gap: 4px; min-height: 44px; padding: 4px 6px 0 8px; flex-shrink: 0; z-index: 1; background: var(--collection-browser-chrome); }
     .collection-browser-tabs .collection-tabs { gap: 4px; min-width: 0; overflow: visible; }
+    .collection-browser-tabs .collection-tab-shell { position: relative; display: flex; min-width: 0; }
     .collection-browser-tabs .collection-orb { margin-left: auto; margin-right: 6px; flex-shrink: 0; }
-    .collection-browser-tabs .collection-tabs button {
+    .collection-browser-tabs .collection-tabs .collection-tab-button {
         position: relative;
         display: flex;
         align-items: center;
@@ -90,6 +91,8 @@
         .collection-tab-count { display: inline-block; flex-shrink: 0; margin: 0; border-radius: 3px; padding: 2px 6px; font-size: 11px; }
         .game-pixel-icon { width: 20px; height: 20px; flex: 0 0 20px; }
     }
+    .collection-tab-shell.is-closable .collection-tab-button { padding-right: 34px; }
+    .collection-tab-close { position: absolute; z-index: 3; right: 6px; top: 50%; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; transform: translateY(-50%); border: 0; background: transparent; color: var(--retro-muted); font-size: 18px; line-height: 1; &:hover:not(:disabled), &:focus-visible { background: var(--desktop-selection); color: var(--retro-text); outline: 1px solid var(--retro-line); } }
     .collection-new-tab, .collection-browser-close { display: grid; place-items: center; flex: 0 0 35px; height: 34px; margin-bottom: 2px; border: 1px solid #637e8a; background: #233746; color: var(--retro-text); box-shadow: inset 1px 1px #4e6977; font-size: 22px; line-height: 1; }
     .collection-new-tab:hover:not(:disabled) { background: #3a515f; }
     .collection-browser-close { margin-left: auto; border-color: #47252d; background: #a34f52; color: #fff; font-size: 25px; text-shadow: 1px 1px #4b1f25; }
@@ -107,13 +110,15 @@
         > .content-area { padding: 8px; }
         .collection-browser-tabs { padding-left: 3px; }
         .collection-browser-tabs .collection-tabs { gap: 3px; }
-        .collection-browser-tabs .collection-tabs button { padding: 8px 8px 9px; font-size: 13px; white-space: nowrap; }
+        .collection-browser-tabs .collection-tabs .collection-tab-button { padding: 8px 8px 9px; font-size: 13px; white-space: nowrap; }
+        .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 30px; }
         .collection-browser-tabs .collection-orb { width: 40px; height: 34px; margin-right: 0; }
         .collection-browser-panel .collection-tools { padding: 10px 8px; gap: 8px; }
     }
     @media (max-width: 380px) {
         .collection-browser-tabs { gap: 4px; padding-left: 0; }
-        .collection-browser-tabs .collection-tabs button { padding-inline: 5px; font-size: 12px; }
+        .collection-browser-tabs .collection-tabs .collection-tab-button { padding-inline: 5px; font-size: 12px; }
+        .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 27px; }
         .collection-browser-tabs .collection-tabs .collection-tab-count { padding-inline: 3px; }
     }
 }

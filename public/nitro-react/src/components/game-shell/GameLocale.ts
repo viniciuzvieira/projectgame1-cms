@@ -901,6 +901,96 @@ const messages: [string, string, string][] = [
         "Criar deck com a carta {name}",
         "Create a deck with {name}",
         "Crear un mazo con {name}"
+    ],
+    [
+        "Desfazer deck",
+        "Disband deck",
+        "Deshacer mazo"
+    ],
+    [
+        "Disponível",
+        "Available",
+        "Disponible"
+    ],
+    [
+        "Deck vazio",
+        "Empty deck",
+        "Mazo vacío"
+    ],
+    [
+        "Compartilhar",
+        "Share",
+        "Compartir"
+    ],
+    [
+        "Lixeira",
+        "Recycle Bin",
+        "Papelera"
+    ],
+    [
+        "Abrir Lixeira",
+        "Open Recycle Bin",
+        "Abrir Papelera"
+    ],
+    [
+        "Pesquisar na lixeira",
+        "Search the recycle bin",
+        "Buscar en la papelera"
+    ],
+    [
+        "Mercado",
+        "Marketplace",
+        "Mercado"
+    ],
+    [
+        "Deck movido para a lixeira. Nenhuma carta foi perdida.",
+        "Deck moved to the Recycle Bin. No cards were lost.",
+        "Mazo movido a la papelera. No se perdió ninguna carta."
+    ],
+    [
+        "Restaurar para a coleção",
+        "Restore to collection",
+        "Restaurar a la colección"
+    ],
+    [
+        "Deck restaurado para a coleção.",
+        "Deck restored to the collection.",
+        "Mazo restaurado a la colección."
+    ],
+    [
+        "Lixeira de decks",
+        "Deck Recycle Bin",
+        "Papelera de mazos"
+    ],
+    [
+        "LIXEIRA DE DECKS",
+        "DECK RECYCLE BIN",
+        "PAPELERA DE MAZOS"
+    ],
+    [
+        "{count} decks excluídos",
+        "{count} deleted decks",
+        "{count} mazos eliminados"
+    ],
+    [
+        "Deck excluído {name}",
+        "Deleted deck {name}",
+        "Mazo eliminado {name}"
+    ],
+    [
+        "A lixeira está vazia.",
+        "The Recycle Bin is empty.",
+        "La papelera está vacía."
+    ],
+    [
+        "Os decks desfeitos aparecerão aqui.",
+        "Disbanded decks will appear here.",
+        "Los mazos deshechos aparecerán aquí."
+    ],
+    [
+        "Use o botão direito em um deck para restaurá-lo.",
+        "Right-click a deck to restore it.",
+        "Haz clic derecho en un mazo para restaurarlo."
     ]
 ];
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

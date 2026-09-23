@@ -15,14 +15,13 @@ class CardDeckService
         $primary = DB::table('user_card_deck_preferences')->where('user_id', $userId)->value('primary_deck_id');
 
         return UserCardDeck::query()->where('user_id', $userId)->with('cards')->orderBy('id')->get()
-            ->map(fn ($deck) => [
-                'id' => $deck->id,
-                'name' => $deck->name,
-                'is_primary' => $deck->id === (int) $primary,
-                'cards' => $deck->cards->map(fn ($card) => $card->only([
-                    'id', 'code', 'name', 'description', 'rarity', 'series', 'design_key', 'figure', 'power',
-                ]) + ['quantity' => (int) $card->pivot->quantity])->values()->all(),
-            ])->all();
+            ->map(fn ($deck) => $this->deckData($deck, $deck->id === (int) $primary))->all();
+    }
+
+    public function trashedListing(int $userId): array
+    {
+        return UserCardDeck::onlyTrashed()->where('user_id', $userId)->with('cards')->orderByDesc('deleted_at')->get()
+            ->map(fn ($deck) => $this->deckData($deck, false))->all();
     }
 
     public function create(int $userId, string $name): UserCardDeck
@@ -31,9 +30,8 @@ class CardDeckService
             $this->lockPlayer($userId);
             $name = $this->validName($name);
             $decks = UserCardDeck::query()->where('user_id', $userId);
-            // Retrying creation after a lost response reuses the deck with the same name.
-            if ($existing = (clone $decks)->where('name', $name)->first()) {
-                return $existing;
+            if (UserCardDeck::withTrashed()->where('user_id', $userId)->where('name', $name)->exists()) {
+                throw ValidationException::withMessages(['name' => 'Você já tem um deck com esse nome.']);
             }
             if ($decks->count() >= 50) {
                 throw ValidationException::withMessages(['name' => 'Voce pode criar ate 50 decks.']);
@@ -50,7 +48,7 @@ class CardDeckService
             $deck = $this->ownedDeck($userId, $deckId);
             $name = $this->validName($name);
             if (UserCardDeck::query()->where('user_id', $userId)->where('name', $name)->whereKeyNot($deckId)->exists()) {
-                throw ValidationException::withMessages(['name' => 'Voce ja tem um deck com esse nome.']);
+                throw ValidationException::withMessages(['name' => 'Você já tem um deck com esse nome.']);
             }
             $deck->update(['name' => $name]);
         }, 3);
@@ -61,8 +59,8 @@ class CardDeckService
         DB::transaction(function () use ($userId, $deckId, $cardId, $quantity) {
             $this->lockPlayer($userId);
             $deck = $this->ownedDeck($userId, $deckId);
-            if ($quantity < 0) {
-                throw ValidationException::withMessages(['quantity' => 'A quantidade nao pode ser negativa.']);
+            if (! in_array($quantity, [0, 1], true)) {
+                throw ValidationException::withMessages(['quantity' => 'Uma carta pode aparecer apenas uma vez no mesmo deck.']);
             }
             // Removing a membership never deletes or decrements the player's collection.
             if ($quantity === 0) {
@@ -71,10 +69,10 @@ class CardDeckService
                 return;
             }
             $owned = UserCard::query()->where('user_id', $userId)->where('card_definition_id', $cardId)->first();
-            if (! $owned || $quantity > $owned->quantity) {
-                throw ValidationException::withMessages(['quantity' => 'Este deck nao pode usar mais copias do que voce possui.']);
+            if (! $owned) {
+                throw ValidationException::withMessages(['quantity' => 'Voce nao possui esta carta.']);
             }
-            $deck->cards()->syncWithoutDetaching([$cardId => ['quantity' => $quantity]]);
+            $deck->cards()->syncWithoutDetaching([$cardId]);
         }, 3);
     }
 
@@ -93,7 +91,18 @@ class CardDeckService
     {
         DB::transaction(function () use ($userId, $deckId) {
             $this->lockPlayer($userId);
-            $this->ownedDeck($userId, $deckId)->delete();
+            $deck = $this->ownedDeck($userId, $deckId);
+            DB::table('user_card_deck_preferences')->where('user_id', $userId)
+                ->where('primary_deck_id', $deckId)->update(['primary_deck_id' => null, 'updated_at' => now()]);
+            $deck->delete();
+        }, 3);
+    }
+
+    public function restore(int $userId, int $deckId): void
+    {
+        DB::transaction(function () use ($userId, $deckId) {
+            $this->lockPlayer($userId);
+            UserCardDeck::onlyTrashed()->where('user_id', $userId)->whereKey($deckId)->firstOrFail()->restore();
         }, 3);
     }
 
@@ -115,5 +124,17 @@ class CardDeckService
         }
 
         return $name;
+    }
+
+    private function deckData(UserCardDeck $deck, bool $isPrimary): array
+    {
+        return [
+            'id' => $deck->id,
+            'name' => $deck->name,
+            'is_primary' => $isPrimary,
+            'cards' => $deck->cards->map(fn ($card) => $card->only([
+                'id', 'code', 'name', 'description', 'rarity', 'series', 'design_key', 'figure', 'power',
+            ]) + ['quantity' => 1])->values()->all(),
+        ];
     }
 }

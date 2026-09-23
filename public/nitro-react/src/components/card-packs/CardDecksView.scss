@@ -1,6 +1,11 @@
 .collection-decks-layout { display: flex; flex: 1; min-height: 0; }
-.collection-deck-library { padding: 18px; flex: 1; min-width: 0; overflow-y: auto; }
-.collection-deck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.collection-deck-library { position: relative; display: flex; flex-direction: column; padding: 18px; flex: 1; min-width: 0; overflow-y: auto; }
+.collection-deck-list { position: relative; display: grid; grid-template-columns: repeat(auto-fill, 205px); gap: 14px; margin-bottom: 16px; align-content: start; }
+.collection-deck-tile.collection-deck-trash-tile { flex: 0 0 auto; width: min(205px, 100%); margin-top: auto; margin-left: auto; }
+.collection-trash-list { min-height: 0; padding-bottom: 0; }
+.collection-trash-library > .collection-section-heading { flex: 0 0 auto; }
+.collection-trash-library > .collection-empty { min-height: 0; }
+.collection-trash-footer { margin-top: auto; text-align: center; }
 .collection-deck-tile { position: relative; min-width: 0; padding: 12px; text-align: center; border: 1px solid #516d7c; border-radius: 3px; color: #ece8d8; background: rgba(78, 110, 123, .14); }
 .collection-deck-tile strong { display: block; overflow-wrap: anywhere; font-size: 16px; text-align: center; }
 .collection-deck-tile small { color: #abc4c8; font-size: 11px; }

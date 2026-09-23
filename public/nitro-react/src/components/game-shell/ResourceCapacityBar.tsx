@@ -2,7 +2,7 @@ import { CSSProperties, FC, useEffect, useRef, useState } from 'react';
 import capacityBar from '../../assets/images/retro/resource-capacity-bar.png';
 
 // The reference sprite is sampled at its native size, never stretched per cell.
-export const RESOURCE_CELL = { width: 7, height: 12, gap: 3, inset: 8 };
+export const RESOURCE_CELL = { width: 7, height: 12, gap: 3, inset: 8, start: 7 };
 
 export const resourceBarLayout = (availableWidth: number, quantity: number, capacity: number) =>
 {
@@ -13,7 +13,7 @@ export const resourceBarLayout = (availableWidth: number, quantity: number, capa
     const quantityUnits = Math.round(quantity * 1000);
     const capacityUnits = Math.round(capacity * 1000);
     const filled = capacityUnits > 0 ? Math.max(0, Math.min(count, Math.floor(quantityUnits * count / capacityUnits))) : 0;
-    return { width, count, filled, usedWidth, left: RESOURCE_CELL.inset + Math.floor((innerWidth - usedWidth) / 2) };
+    return { width, count, filled, usedWidth, left: RESOURCE_CELL.start };
 };
 
 export const ResourceBarArtwork: FC<{ width: number; quantity: number; capacity: number; loading?: boolean }> = ({ width, quantity, capacity, loading = false }) =>

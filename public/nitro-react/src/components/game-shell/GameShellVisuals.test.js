@@ -31,6 +31,16 @@ test('collection and deck actions share the isometric folder without rotated art
     expect(renderToStaticMarkup(createElement(GameIcon, { name: 'cards' }))).toContain('viewBox="0 0 32 32"');
 });
 
+test('shop and marketplace reuse the pixel cart while trash uses full desktop artwork', () => {
+    const shop = renderToStaticMarkup(createElement(GameIcon, { name: 'shop' }));
+    const market = renderToStaticMarkup(createElement(GameIcon, { name: 'market' }));
+    expect(shop).toBe(market);
+    expect(shop).toContain('viewBox="0 0 32 32"');
+    const trash = renderToStaticMarkup(createElement(GameIcon, { name: 'trash' }));
+    expect(trash).toContain('game-trash-icon');
+    expect(trash).toContain('viewBox="0 0 48 48"');
+});
+
 test('all existing Android branches advance from left to right with space for labels', () => {
     expect(ANDROID_SKILLS).toHaveLength(13);
     expect(new Set(ANDROID_SKILLS.map(skill => skill.code)).size).toBe(13);
@@ -103,7 +113,7 @@ test.each([
 test.each([0, 17, 69.33, 105.67, 147.875, 202.8, 216])('native sprite cells and gaps stay on integer pixels at width %s', width => {
     const layout = resourceBarLayout(width, 100, 100);
     expect(Number.isInteger(layout.width)).toBe(true);
-    expect(Number.isInteger(layout.left)).toBe(true);
+    expect(layout.left).toBe(7);
     expect(layout.filled).toBe(layout.count);
     for(let index = 0; index < layout.count; index++) {
         const left = layout.left + index * (RESOURCE_CELL.width + RESOURCE_CELL.gap);

@@ -87,6 +87,7 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
             Route::post('/', [CardDeckController::class, 'store'])->name('api.game.decks.store');
             Route::patch('/{deckId}', [CardDeckController::class, 'rename'])->whereNumber('deckId')->name('api.game.decks.rename');
             Route::delete('/{deckId}', [CardDeckController::class, 'destroy'])->whereNumber('deckId')->name('api.game.decks.destroy');
+            Route::put('/{deckId}/restore', [CardDeckController::class, 'restore'])->whereNumber('deckId')->name('api.game.decks.restore');
             Route::put('/{deckId}/primary', [CardDeckController::class, 'primary'])->whereNumber('deckId')->name('api.game.decks.primary');
             Route::put('/{deckId}/cards/{cardId}', [CardDeckController::class, 'card'])->whereNumber(['deckId', 'cardId'])->name('api.game.decks.card');
         });

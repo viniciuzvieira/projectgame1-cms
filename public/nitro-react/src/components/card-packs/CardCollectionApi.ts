@@ -28,6 +28,7 @@ export interface CardCollection
     packs: CollectionPack[];
     cards: CollectionCard[];
     decks: CollectionDeck[];
+    trashed_decks: CollectionDeck[];
     csrf_token?: string;
 }
 
@@ -42,6 +43,7 @@ export interface CollectionDeck
 export interface DeckMutationResult
 {
     decks: CollectionDeck[];
+    trashed_decks: CollectionDeck[];
     deck_id?: number;
 }
 
@@ -124,6 +126,7 @@ const mutateDeck = async (path: string, method: string, body?: unknown): Promise
 export const createCardDeck = (name: string) => mutateDeck('', 'POST', { name });
 export const renameCardDeck = (id: number, name: string) => mutateDeck(`/${ id }`, 'PATCH', { name });
 export const deleteCardDeck = (id: number) => mutateDeck(`/${ id }`, 'DELETE');
+export const restoreCardDeck = (id: number) => mutateDeck(`/${ id }/restore`, 'PUT');
 export const makePrimaryCardDeck = (id: number) => mutateDeck(`/${ id }/primary`, 'PUT');
 export const setCardDeckQuantity = (id: number, cardId: number, quantity: number) => mutateDeck(`/${ id }/cards/${ cardId }`, 'PUT', { quantity });
 

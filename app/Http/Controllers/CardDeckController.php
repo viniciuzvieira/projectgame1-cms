@@ -26,7 +26,7 @@ class CardDeckController extends Controller
 
     public function card(Request $request, int $deckId, int $cardId, CardDeckService $service): JsonResponse
     {
-        $data = $request->validate(['quantity' => ['required', 'integer', 'min:0', 'max:4294967295']]);
+        $data = $request->validate(['quantity' => ['required', 'integer', 'min:0', 'max:1']]);
         $service->setCard($request->user()->id, $deckId, $cardId, $data['quantity']);
 
         return $this->result($request, $service);
@@ -46,9 +46,19 @@ class CardDeckController extends Controller
         return $this->result($request, $service);
     }
 
+    public function restore(Request $request, int $deckId, CardDeckService $service): JsonResponse
+    {
+        $service->restore($request->user()->id, $deckId);
+
+        return $this->result($request, $service);
+    }
+
     private function result(Request $request, CardDeckService $service, array $extra = []): JsonResponse
     {
-        return response()->json($extra + ['decks' => $service->listing($request->user()->id)])
+        return response()->json($extra + [
+            'decks' => $service->listing($request->user()->id),
+            'trashed_decks' => $service->trashedListing($request->user()->id),
+        ])
             ->header('Cache-Control', 'private, no-store');
     }
 }

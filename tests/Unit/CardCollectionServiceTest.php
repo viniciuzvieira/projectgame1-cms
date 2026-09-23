@@ -48,6 +48,8 @@ class CardCollectionServiceTest extends TestCase
         });
         (require __DIR__.'/../../database/migrations/2026_09_15_000000_create_card_collections.php')->up();
         (require __DIR__.'/../../database/migrations/2026_09_15_010000_create_card_decks.php')->up();
+        (require __DIR__.'/../../database/migrations/2026_09_23_000000_enforce_unique_cards_per_deck.php')->up();
+        (require __DIR__.'/../../database/migrations/2026_09_23_010000_add_soft_deletes_to_user_card_decks.php')->up();
         app(CardCatalogSeeder::class)->run();
         $this->user = User::withoutEvents(fn () => User::query()->create(['username' => 'teste123']));
         $this->pack = CardPack::query()->where('code', 'founders')->firstOrFail();
