@@ -1,0 +1,105 @@
+.cyber-retro-ui {
+    .nitro-toolbar {
+        border-top: 2px solid #0d1c29;
+        background: linear-gradient(180deg, #69818c 0 1px, #354b5c 1px 4px, transparent 4px), rgba(23, 37, 49, .97);
+        box-shadow: 0 -3px rgba(16, 28, 39, .5), inset 0 -3px #0e1d29;
+        padding-right: 12px !important;
+        padding-left: 12px !important;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: 32px;
+            width: 112px;
+            height: 9px;
+            background: var(--retro-wiring) center / 112px 12px no-repeat;
+            pointer-events: none;
+        }
+
+        .cyber-toolbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding-right: 12px;
+            border-right: 1px solid #607783;
+            font-family: var(--retro-font);
+            color: var(--retro-amber);
+            span { font-size: 23px; font-weight: 800; letter-spacing: -1px; }
+            small { font-size: 9px; line-height: 1.15; letter-spacing: 1px; color: #a8b9bd; max-width: 30px; }
+        }
+
+        .cyber-toolbar-primary { min-width: 0; }
+        .cyber-toolbar-actions { gap: 6px !important; }
+
+        .cyber-toolbar-action {
+            display: flex;
+            flex: 0 0 43px;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 43px;
+            height: 41px;
+            min-width: 0;
+            padding: 0;
+            border: 1px solid #101f2b;
+            border-radius: 3px;
+            background: linear-gradient(#526878 0 1px, #30485a 1px 50%, #293e4e 50%);
+            box-shadow: inset 1px 0 #607784, inset -1px -1px #1a2a37, 0 2px #0a1822;
+            cursor: pointer;
+            transition: translate .14s ease-out, background-color .14s ease-out;
+
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: 2px;
+                left: 17px;
+                width: 7px;
+                height: 2px;
+                background: #162a36;
+                pointer-events: none;
+            }
+
+            &:hover { transform: none; translate: 0 -2px; filter: none; background: #476171; }
+            &:hover::after { background: var(--retro-amber); }
+            &:active, &.active { transform: none; translate: 0 1px; background: #263e4a; }
+            &.active::after { background: var(--retro-mint); }
+            &:focus-visible { outline: 2px solid var(--retro-amber); outline-offset: 2px; }
+            > .icon { flex-shrink: 0; pointer-events: none; }
+            &.item-avatar { width: 43px; height: 41px; }
+        }
+    }
+
+    .nitro-toolbar-me {
+        border: 2px solid var(--retro-ink);
+        border-radius: 3px;
+        color: var(--retro-text);
+        background: rgba(var(--retro-surface), .96);
+        box-shadow: inset 0 0 0 1px var(--retro-frame-light), 4px 5px rgba(7, 18, 26, .5);
+    }
+
+    .nitro-chat-input-container {
+        background: #1d3040;
+        border-color: #12202b;
+        border-radius: 3px;
+        color: var(--retro-text);
+        box-shadow: inset 1px 1px #64818d, inset -1px -1px #0c1b28;
+        &::before { height: 1px; background: #597c88; }
+        input, textarea { color: var(--retro-text); caret-color: var(--retro-amber); }
+        input::placeholder, textarea::placeholder { color: #a5b8be; }
+    }
+
+    @media (max-width: 1100px) {
+        .nitro-toolbar .cyber-toolbar-brand { display: none; }
+    }
+    @media (max-width: 767px) {
+        .nitro-toolbar { padding-inline: 6px !important; gap: 6px !important; }
+        .nitro-toolbar .cyber-toolbar-primary { overflow-x: auto; scrollbar-width: none; padding: 3px 0; }
+        .cyber-toolbar-primary::-webkit-scrollbar { display: none; }
+        .nitro-toolbar .cyber-toolbar-actions { gap: 4px !important; }
+        .nitro-toolbar .cyber-toolbar-secondary { flex-shrink: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .nitro-toolbar .cyber-toolbar-action { transition: none; translate: none; }
+    }
+}

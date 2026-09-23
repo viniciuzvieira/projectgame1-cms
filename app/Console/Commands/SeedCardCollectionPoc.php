@@ -13,7 +13,7 @@ class SeedCardCollectionPoc extends Command
 {
     protected $signature = 'cards:seed-poc {username=teste123}';
 
-    protected $description = 'Seed the two POC catalogs and grant 50 of each pack once to the selected player.';
+    protected $description = 'Seed the POC catalogs and grant 50 of each pack once to the selected player.';
 
     public function handle(): int
     {
@@ -27,7 +27,7 @@ class SeedCardCollectionPoc extends Command
         app(CardCatalogSeeder::class)->run();
         DB::transaction(function () use ($user) {
             User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            foreach (CardPack::query()->whereIn('code', ['founders', 'arctic'])->get() as $pack) {
+            foreach (CardPack::query()->whereIn('code', ['founders', 'arctic', 'arcade'])->get() as $pack) {
                 $grant = ['user_id' => $user->id, 'card_pack_id' => $pack->id, 'grant_key' => 'collection-poc-2026-09-15'];
                 if (DB::table('user_card_pack_grants')->where($grant)->exists()) {
                     continue;

@@ -6,6 +6,8 @@ import { useSessionInfo } from '../../hooks';
 import { bendPackagePath, COMPLETE_TEAR_PROGRESS, getPackageColorBand, getTearFront, PACK_HEIGHT, PACK_WIDTH, TearDirection } from './CardPackGeometry';
 import { CollectionCard, CollectionPack } from './CardCollectionApi';
 import { CardPackDesign, getCardPackDesign } from './CardPackDesign';
+import { DeviceCardControls } from './DeviceCardControls';
+import { t } from '../game-shell/GameLocale';
 
 type PackOpeningPhase = 'sealed' | 'tearing' | 'authorizing' | 'opening' | 'revealed';
 
@@ -169,15 +171,24 @@ export const renderPackageArtwork = (id: string, progress = 0, direction: TearDi
         </g>
 
         { progress === 0 && <>
-            <g className="card-pack-master-emblem" transform="rotate(45 102.5 172.5)">
+            { design.key === 'arcade' ? <g stroke="#382b48" strokeWidth="3" strokeLinejoin="round" shapeRendering="crispEdges">
+                <path d="M73 144h65v72l-14 15H73Z" fill="#382b48" opacity=".4" />
+                <path d="M67 138h65v72l-14 15H67Z" fill="#ffc579" />
+                <path d="M71 142h57v64l-13 15H71Z" fill="#ed9874" stroke="#ffe5a8" strokeWidth="2" />
+                <path d="M75 150h49v39H75Z" fill="#574258" /><path d="M81 156h37v25H81Z" fill="#afcf85" strokeWidth="2" />
+                <path d="M92 161h15v3h4v11H88v-11h4Z" fill="#46655b" stroke="none" /><path d="M92 167h4v4h-4Zm11 0h4v4h-4Z" fill="#dbebad" stroke="none" />
+                <path d="M81 197h7v-6h7v6h6v7h-6v6h-7v-6h-7Z" fill="#382b48" strokeWidth="1" />
+                <circle cx="111" cy="203" r="4" fill="#b74274" strokeWidth="2" /><circle cx="122" cy="197" r="4" fill="#b74274" strokeWidth="2" />
+                <path d="m106 215 8-3m-5 7 8-3" strokeWidth="2" /><path d="M51 155h8m-4-4v8m85 42h9m-4-4v8" stroke="#ffe2ae" strokeWidth="2" />
+            </g> : <g className="card-pack-master-emblem" transform="rotate(45 102.5 172.5)">
                 <rect className="card-pack-master-emblem-shadow" x="77" y="147" width="59" height="59" />
                 <rect className="card-pack-master-emblem-outer" x="73" y="143" width="59" height="59" />
                 <rect className="card-pack-master-emblem-inner" x="87" y="157" width="31" height="31" />
-            </g>
+            </g> }
             <text className="card-pack-master-copy card-pack-master-kicker" x="102.5" y="67">{ design.kicker }</text>
             <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="101">{ design.title[0] }</text>
             <text className="card-pack-master-copy card-pack-master-logo" x="102.5" y="125">{ design.title[1] }</text>
-            <text className="card-pack-master-copy card-pack-master-count" x="102.5" y="258">CONTEM 1 CARD</text>
+            <text className="card-pack-master-copy card-pack-master-count" x="102.5" y="258">CONTÉM 1 CARD</text>
         </> }
         <path className="card-pack-master-bottom-stitch" d={ path('M 10 276 H 195') } />
         <path className="card-pack-master-shadow-frame" d={ path(getPackageOutlinePath(6.5)) } />
@@ -469,12 +480,12 @@ export const CardPackOpeningView: FC<CardPackOpeningViewProps> = props =>
     const stage = (
         <div className={ `card-pack-stage phase-${ phase }` }>
             <div className="card-pack-stage-heading">
-                <strong>{ phase === 'revealed' ? 'VOCE ENCONTROU!' : pack?.name || 'PACOTE CYBER HEROIC' }</strong>
-                <span>{ phase === 'revealed' ? (onOpen ? 'Carta adicionada a sua colecao' : 'Carta adicionada apenas nesta demonstracao') : 'Arraste uma ponta do topo para o outro lado' }</span>
+                <strong>{ phase === 'revealed' ? t('VOCÊ ENCONTROU!') : t(pack?.name || 'PACOTE CYBER HEROIC') }</strong>
+                <span>{ t(phase === 'revealed' ? (onOpen ? t("Carta adicionada à sua coleção") : t("Carta adicionada apenas nesta demonstração")) : t("Arraste uma ponta do topo para o outro lado")) }</span>
             </div>
 
             <div className={ `card-pack-reward reward-theme-${ reward?.design_key || 'founders' }` } aria-hidden={ phase !== 'revealed' }>
-                <div className="card-pack-reward-rarity">{ reward?.rarity || 'LENDARIO' }</div>
+                <div className="card-pack-reward-rarity">{ t(reward?.rarity || t("LENDÁRIO")) }</div>
                 <div className="card-pack-reward-art">
                     <span className="card-pack-reward-halo" aria-hidden="true" />
                     <LayoutAvatarImageView
@@ -484,11 +495,12 @@ export const CardPackOpeningView: FC<CardPackOpeningViewProps> = props =>
                         loadingSize="small"
                         classNames={ [ 'card-pack-reward-avatar' ] } />
                 </div>
-                <div className="card-pack-reward-name">{ reward?.name || 'CYBER HERO' }</div>
+                <div className="card-pack-reward-name">{ t(reward?.name || 'CYBER HERO') }</div>
                 <div className="card-pack-reward-stats">
-                    <span><b>{ reward?.power || 98 }</b> PODER</span>
-                    <span>{ reward?.series || 'UR / SERIE 01' }</span>
+                    <span><b>{ reward?.power || 98 }</b> { t('PODER') }</span>
+                    <span>{ t(reward?.series || 'SÉRIE 01') }</span>
                 </div>
+                { reward?.design_key === 'arcade' && <DeviceCardControls /> }
             </div>
 
             <div className="card-pack-shell" style={ design.style } aria-hidden={ phase === 'revealed' }>
@@ -536,7 +548,7 @@ export const CardPackOpeningView: FC<CardPackOpeningViewProps> = props =>
                 <button
                     type="button"
                     className="card-pack-tear-strip"
-                    aria-label="Segure uma ponta do topo e arraste para o lado oposto para rasgar o pacote"
+                    aria-label={ t("Segure uma ponta do topo e arraste para o lado oposto para rasgar o pacote") }
                     disabled={ isBusy || phase === 'revealed' || (pack && pack.quantity < 1) }
                     onPointerDown={ onTearPointerDown }
                     onPointerMove={ onTearPointerMove }
@@ -547,15 +559,15 @@ export const CardPackOpeningView: FC<CardPackOpeningViewProps> = props =>
 
             { (phase === 'opening' || phase === 'authorizing') &&
                         <div className="card-pack-opening-status">
-                            <LayoutPixelLoadingView size="large" label="Revelando card" />
-                            <strong>{ phase === 'authorizing' ? 'ABRINDO PACOTE...' : 'REVELANDO...' }</strong>
+                            <LayoutPixelLoadingView size="large" label={ t("Revelando card") } />
+                            <strong>{ phase === 'authorizing' ? t("ABRINDO PACOTE...") : t("REVELANDO...") }</strong>
                         </div> }
 
             <div className="card-pack-action">
                 { error && <div className="card-pack-error" role="alert">{ error }</div> }
                 { phase === 'revealed'
-                    ? <Button variant="success" disabled={ pack && pack.quantity < 1 } onClick={ resetPack }>{ pack && pack.quantity < 1 ? 'PACOTES ESGOTADOS' : 'ABRIR OUTRO PACOTE' }</Button>
-                    : <Button variant="primary" disabled={ isBusy || (pack && pack.quantity < 1) } onClick={ () => startOpening() }>{ pack && pack.quantity < 1 ? 'PACOTES ESGOTADOS' : error ? 'TENTAR NOVAMENTE' : 'ABRIR SEM ARRASTAR' }</Button> }
+                    ? <Button variant="success" disabled={ pack && pack.quantity < 1 } onClick={ resetPack }>{ pack && pack.quantity < 1 ? t("PACOTES ESGOTADOS") : t("ABRIR OUTRO PACOTE") }</Button>
+                    : <Button variant="primary" disabled={ isBusy || (pack && pack.quantity < 1) } onClick={ () => startOpening() }>{ pack && pack.quantity < 1 ? t("PACOTES ESGOTADOS") : error ? t("Tentar novamente") : t("ABRIR SEM ARRASTAR") }</Button> }
             </div>
         </div>
     );

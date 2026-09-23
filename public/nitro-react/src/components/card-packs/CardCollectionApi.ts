@@ -1,3 +1,4 @@
+import { t } from '../game-shell/GameLocale';
 export interface CollectionPack
 {
     id: number;
@@ -26,7 +27,22 @@ export interface CardCollection
 {
     packs: CollectionPack[];
     cards: CollectionCard[];
+    decks: CollectionDeck[];
     csrf_token?: string;
+}
+
+export interface CollectionDeck
+{
+    id: number;
+    name: string;
+    is_primary: boolean;
+    cards: CollectionCard[];
+}
+
+export interface DeckMutationResult
+{
+    decks: CollectionDeck[];
+    deck_id?: number;
 }
 
 export interface CollectionOpening
@@ -47,7 +63,7 @@ export class CardCollectionError extends Error
 
 let csrfToken = '';
 
-const request = async <T,>(url: string, body?: unknown): Promise<T> =>
+const request = async <T,>(url: string, body?: unknown, method = body ? 'POST' : 'GET'): Promise<T> =>
 {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 20000);
@@ -55,23 +71,23 @@ const request = async <T,>(url: string, body?: unknown): Promise<T> =>
     try
     {
         const response = await fetch(url, {
-            method: body ? 'POST' : 'GET', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(body ? { 'X-CSRF-TOKEN': csrfToken } : {}) },
+            method, credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(method !== 'GET' ? { 'X-CSRF-TOKEN': csrfToken } : {}) },
             body: body ? JSON.stringify(body) : undefined
         });
         if(response.redirected || !response.headers.get('content-type')?.includes('application/json'))
-            throw new CardCollectionError('Sua sessao precisa ser verificada. Entre novamente no jogo.', 401);
+            throw new CardCollectionError(t("Sua sessão precisa ser verificada. Entre novamente no jogo."), 401);
         const data = await response.json().catch(() => ({}));
 
         if(!response.ok)
         {
             const validation = Object.values(data.errors || {}).flat().find(value => typeof value === 'string');
-            throw new CardCollectionError(response.status === 401 ? 'Entre novamente no jogo para acessar sua colecao.' :
-                response.status === 419 ? 'Sua sessao expirou. Atualize a colecao e tente novamente.' :
-                    response.status === 404 ? 'Este pacote nao esta mais disponivel.' :
-                        response.status === 429 ? 'Aguarde alguns instantes antes de tentar novamente.' :
-                            response.status >= 500 ? 'O servidor nao confirmou a abertura. Tente novamente para verificar sem gastar outro pacote.' :
-                                (validation as string) || data.message || 'Nao foi possivel acessar a colecao.', response.status);
+            throw new CardCollectionError(response.status === 401 ? t("Entre novamente no jogo para acessar sua coleção.") :
+                response.status === 419 ? t("Sua sessão expirou. Atualize a coleção e tente novamente.") :
+                    response.status === 404 ? t("Este item não está mais disponível. Atualize a coleção.") :
+                        response.status === 429 ? t("Aguarde alguns instantes antes de tentar novamente.") :
+                            response.status >= 500 ? (url.endsWith('/open') ? t("O servidor não confirmou a abertura. Tente novamente para verificar sem gastar outro pacote.") : t("O servidor não confirmou a operação. Atualize a coleção para verificar.")) :
+                                (validation as string) || data.message || t("Não foi possível acessar a coleção."), response.status);
         }
 
         return data as T;
@@ -79,7 +95,7 @@ const request = async <T,>(url: string, body?: unknown): Promise<T> =>
     catch(error)
     {
         if(error instanceof CardCollectionError) throw error;
-        throw new CardCollectionError('A conexao foi interrompida. Tente novamente para confirmar a mesma abertura.', 0);
+        throw new CardCollectionError(url.endsWith('/open') ? t("A conexão foi interrompida. Tente novamente para confirmar a mesma abertura.") : t("A conexão foi interrompida. Atualize a coleção para verificar se a alteração foi salva."), 0);
     }
     finally { window.clearTimeout(timeout); }
 };
@@ -96,6 +112,20 @@ export const openCollectionPack = async (packId: number, requestId: string): Pro
     if(!csrfToken) await loadCardCollection();
     return request<CollectionOpening>(`/api/game/collection/packs/${ packId }/open`, { request_id: requestId });
 };
+
+const mutateDeck = async (path: string, method: string, body?: unknown): Promise<DeckMutationResult> =>
+{
+    if(!csrfToken) await loadCardCollection();
+    // IIS blocks native PUT/PATCH/DELETE; Laravel restores the verb before routing.
+    const payload = { ...(body as Record<string, unknown> || {}), ...(method !== 'POST' ? { _method: method } : {}) };
+    return request<DeckMutationResult>(`/api/game/collection/decks${ path }`, payload, 'POST');
+};
+
+export const createCardDeck = (name: string) => mutateDeck('', 'POST', { name });
+export const renameCardDeck = (id: number, name: string) => mutateDeck(`/${ id }`, 'PATCH', { name });
+export const deleteCardDeck = (id: number) => mutateDeck(`/${ id }`, 'DELETE');
+export const makePrimaryCardDeck = (id: number) => mutateDeck(`/${ id }/primary`, 'PUT');
+export const setCardDeckQuantity = (id: number, cardId: number, quantity: number) => mutateDeck(`/${ id }/cards/${ cardId }`, 'PUT', { quantity });
 
 export const createOpeningRequestId = (): string =>
 {

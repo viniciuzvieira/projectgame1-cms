@@ -165,15 +165,29 @@
         state.open = false;
     }
 
+    function triggerKey() {
+        try {
+            const key = JSON.parse(localStorage.getItem("cyber-game-preferences") || "{}").terminal_key;
+            return key && !["KeyW", "KeyA", "KeyS", "KeyD"].includes(key) ? key : state.opts.triggerKey;
+        } catch { return state.opts.triggerKey; }
+    }
+
+    function ignoresShortcut(e) {
+        const doc = e.target && e.target.ownerDocument;
+        return e.repeat || e.ctrlKey || e.altKey || e.metaKey ||
+            (doc && doc.documentElement.dataset.keybindingCapture === "true") ||
+            (!state.open && e.target && (e.target.isContentEditable || (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), .game-context-menu-layer'))));
+    }
+
     function handleKeydown(e) {
         const opts = state.opts;
         if (!opts) return;
 
-        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (ignoresShortcut(e)) return;
 
         // abrir com C
         if (!state.open) {
-            if (e.code === opts.triggerKey) {
+            if (e.code === triggerKey()) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 e.stopPropagation();
@@ -251,10 +265,10 @@
                 w.addEventListener(
                     "keydown",
                     (e) => {
-                        if (e.ctrlKey || e.altKey || e.metaKey) return;
+                        if (ignoresShortcut(e)) return;
 
                         // sempre intercepta KeyC pra abrir o terminal novo
-                        if (!state.open && e.code === state.opts.triggerKey) {
+                        if (!state.open && e.code === triggerKey()) {
                             e.preventDefault();
                             e.stopImmediatePropagation();
                             e.stopPropagation();

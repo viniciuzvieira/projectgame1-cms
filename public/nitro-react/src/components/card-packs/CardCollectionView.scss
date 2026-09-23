@@ -45,7 +45,7 @@
 .collection-tabs { display: flex; align-self: stretch; gap: 5px; }
 .collection-tabs button { border: 2px solid #586b7a; border-radius: 5px 5px 0 0; background: #acbac5; padding: 8px 16px; font-size: 15px; font-weight: bold; box-shadow: inset 0 2px #dce4e9; color: #354854; }
 .collection-tabs button[aria-selected='true'] { background: #f8f5ed; border-bottom-color: #f8f5ed; color: #183b4c; }
-.collection-tabs span { display: inline-block; margin-left: 6px; border-radius: 3px; padding: 2px 6px; font-size: 11px; color: #eef8fb; background: #3e606e; }
+.collection-tabs .collection-tab-count { display: inline-block; margin-left: 6px; border-radius: 3px; padding: 2px 6px; font-size: 11px; color: #eef8fb; background: #3e606e; }
 .collection-search { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 170px; padding: 0 10px; height: 36px; border: 2px solid #718491; background: #fff; box-shadow: inset 0 2px #e6e8e9; }
 .collection-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 13px; color: #263c49; }
 .collection-search-icon { width: 12px; height: 12px; flex: 0 0 12px; border: 2px solid #78909c; position: relative; border-radius: 50%; }

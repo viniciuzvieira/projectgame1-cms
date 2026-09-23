@@ -4,8 +4,12 @@ import { CreateLinkEvent, GetSessionDataManager, MessengerIconState, OpenMesseng
 import { Base, Flex, LayoutAvatarImageView, LayoutItemCountView, TransitionAnimation, TransitionAnimationTypes } from '../../common';
 import { useAchievements, useFriends, useInventoryUnseenTracker, useMessageEvent, useMessenger, useRoomEngineEvent, useSessionInfo } from '../../hooks';
 import { ToolbarMeView } from './ToolbarMeView';
+import { ToolbarButtonView } from './ToolbarButtonView';
+import { GameIcon } from '../game-shell/GameIcon';
+import { useGameLocale } from '../game-shell/GameLocale';
 
 export const ToolbarView: FC<{ isInRoom: boolean }> = props => {
+    useGameLocale();
     const { isInRoom } = props;
 
     const [isMeExpanded, setMeExpanded] = useState(false);
@@ -65,61 +69,44 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props => {
                 <ToolbarMeView useGuideTool={useGuideTool} unseenAchievementCount={getTotalUnseen} setMeExpanded={setMeExpanded} />
             </TransitionAnimation>
             <Flex alignItems="center" justifyContent="between" gap={2} className="nitro-toolbar py-1 px-3">
-                <Flex gap={2} alignItems="center">
-                    <Flex alignItems="center" gap={2}>
-                        <Flex center pointer className={'navigation-item item-avatar ' + (isMeExpanded ? 'active ' : '')} onClick={event => setMeExpanded(!isMeExpanded)}>
+                <Flex gap={2} alignItems="center" className="cyber-toolbar-primary">
+                    <div className="cyber-toolbar-brand" aria-hidden="true"><span>CH</span><small>SYS / 01</small></div>
+                    <Flex alignItems="center" gap={2} className="cyber-toolbar-actions">
+                        <ToolbarButtonView label="Meu personagem" className="item-avatar" active={isMeExpanded} onClick={() => setMeExpanded(!isMeExpanded)}>
                             <LayoutAvatarImageView figure={userFigure} direction={2} position="absolute" />
                             {(getTotalUnseen > 0) &&
                                 <LayoutItemCountView count={getTotalUnseen} />}
-                        </Flex>
+                        </ToolbarButtonView>
                         {isInRoom &&
-                            <Base pointer className="navigation-item icon icon-habbo" onClick={event => VisitDesktop()} />}
+                            <ToolbarButtonView label="Voltar ao hotel" icon="icon-habbo" onClick={() => VisitDesktop()} />}
                         {!isInRoom &&
-                            <Base pointer className="navigation-item icon icon-house" onClick={event => CreateLinkEvent('navigator/goto/home')} />}
-                        <Base pointer className="navigation-item icon icon-rooms" onClick={event => CreateLinkEvent('navigator/toggle')} />
-                        <Base pointer className="navigation-item icon icon-catalog" onClick={event => CreateLinkEvent('catalog/toggle')} />
-                        <Base
-                            pointer
-                            className="navigation-item card-packs-toolbar-button"
-                            title="Abrir pacotes de cards"
-                            aria-label="Abrir pacotes de cards"
-                            onClick={event => CreateLinkEvent('card-packs/toggle')}>
-                            <span className="card-packs-toolbar-icon" aria-hidden="true">
-                                <span className="card-packs-toolbar-emblem" />
-                            </span>
-                        </Base>
-                        <Base
-                            pointer
-                            className="navigation-item cd-case-toolbar-button"
-                            title="Abrir arquivo de cards em CD"
-                            aria-label="Abrir arquivo de cards em CD"
-                            onClick={event => CreateLinkEvent('cd-case/toggle')}>
-                            <span className="cd-case-toolbar-icon" aria-hidden="true">
-                                <span className="cd-case-toolbar-card" />
-                            </span>
-                        </Base>
-                        <button type="button" className="navigation-item card-collection-toolbar-button" title="Minha colecao de pacotes e cartas" aria-label="Minha colecao de pacotes e cartas" onClick={ () => CreateLinkEvent('card-collection/toggle') }>
-                            <span className="card-collection-toolbar-icon" aria-hidden="true" />
-                        </button>
-                        <Base pointer className="navigation-item icon icon-inventory" onClick={event => CreateLinkEvent('inventory/toggle')}>
+                            <ToolbarButtonView label="Meu quarto" icon="icon-house" onClick={() => CreateLinkEvent('navigator/goto/home')} />}
+                        <ToolbarButtonView label="Navegador de quartos" icon="icon-rooms" onClick={() => CreateLinkEvent('navigator/toggle')} />
+                        <ToolbarButtonView label="Catalogo" icon="icon-catalog" onClick={() => CreateLinkEvent('catalog/toggle')} />
+                        <ToolbarButtonView label="Minha colecao de pacotes e cartas" onClick={() => CreateLinkEvent('card-collection/toggle')}>
+                            <GameIcon name="folder" />
+                        </ToolbarButtonView>
+                        <ToolbarButtonView label="Evolução de skills" onClick={() => CreateLinkEvent('game-skills/toggle')}><GameIcon name="skills" /></ToolbarButtonView>
+                        <ToolbarButtonView label="Configurações" onClick={() => CreateLinkEvent('user-settings/toggle')}><GameIcon name="settings" /></ToolbarButtonView>
+                        <ToolbarButtonView label="Inventario" icon="icon-inventory" onClick={() => CreateLinkEvent('inventory/toggle')}>
                             {(getFullCount > 0) &&
                                 <LayoutItemCountView count={getFullCount} />}
-                        </Base>
+                        </ToolbarButtonView>
                         {isInRoom &&
-                            <Base pointer className="navigation-item icon icon-camera" onClick={event => CreateLinkEvent('camera/toggle')} />}
+                            <ToolbarButtonView label="Camera" icon="icon-camera" onClick={() => CreateLinkEvent('camera/toggle')} />}
                         {isMod &&
-                            <Base pointer className="navigation-item icon icon-modtools" onClick={event => CreateLinkEvent('mod-tools/toggle')} />}
+                            <ToolbarButtonView label="Moderacao" icon="icon-modtools" onClick={() => CreateLinkEvent('mod-tools/toggle')} />}
                     </Flex>
                     <Flex alignItems="center" id="toolbar-chat-input-container" />
                 </Flex>
-                <Flex alignItems="center" gap={2}>
-                    <Flex gap={2}>
-                        <Base pointer className="navigation-item icon icon-friendall" onClick={event => CreateLinkEvent('friends/toggle')}>
+                <Flex alignItems="center" gap={2} className="cyber-toolbar-secondary">
+                    <Flex gap={2} className="cyber-toolbar-actions">
+                        <ToolbarButtonView label="Amigos" icon="icon-friendall" onClick={() => CreateLinkEvent('friends/toggle')}>
                             {(requests.length > 0) &&
                                 <LayoutItemCountView count={requests.length} />}
-                        </Base>
+                        </ToolbarButtonView>
                         {((iconState === MessengerIconState.SHOW) || (iconState === MessengerIconState.UNREAD)) &&
-                            <Base pointer className={`navigation-item icon icon-message ${(iconState === MessengerIconState.UNREAD) && 'is-unseen'}`} onClick={event => OpenMessengerChat()} />}
+                            <ToolbarButtonView label="Mensagens" icon={`icon-message ${iconState === MessengerIconState.UNREAD ? 'is-unseen' : ''}`} onClick={() => OpenMessengerChat()} />}
                     </Flex>
                     <Base id="toolbar-friend-bar-container" className="d-none d-lg-block" />
                 </Flex>

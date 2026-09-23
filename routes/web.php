@@ -6,6 +6,8 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BannedController;
 use App\Http\Controllers\CardCollectionController;
+use App\Http\Controllers\CardDeckController;
+use App\Http\Controllers\PlayerGameProfileController;
 use App\Http\Controllers\FlashController;
 use App\Http\Controllers\GameAuthController;
 use App\Http\Controllers\HomeController;
@@ -73,10 +75,21 @@ Route::middleware(['maintenance', 'check-ban', 'force.staff.2fa'])->group(functi
         });
 
     Route::middleware('auth')->group(function () {
+        Route::get('/api/game/profile', [PlayerGameProfileController::class, 'index'])->name('api.game.profile');
+        Route::patch('/api/game/preferences', [PlayerGameProfileController::class, 'update'])
+            ->middleware('throttle:90,1')->name('api.game.preferences');
         Route::get('/api/game/collection', [CardCollectionController::class, 'index'])
             ->name('api.game.collection');
         Route::post('/api/game/collection/packs/{packId}/open', [CardCollectionController::class, 'open'])
             ->whereNumber('packId')->middleware('throttle:30,1')->name('api.game.collection.open');
+
+        Route::prefix('api/game/collection/decks')->middleware('throttle:90,1')->group(function () {
+            Route::post('/', [CardDeckController::class, 'store'])->name('api.game.decks.store');
+            Route::patch('/{deckId}', [CardDeckController::class, 'rename'])->whereNumber('deckId')->name('api.game.decks.rename');
+            Route::delete('/{deckId}', [CardDeckController::class, 'destroy'])->whereNumber('deckId')->name('api.game.decks.destroy');
+            Route::put('/{deckId}/primary', [CardDeckController::class, 'primary'])->whereNumber('deckId')->name('api.game.decks.primary');
+            Route::put('/{deckId}/cards/{cardId}', [CardDeckController::class, 'card'])->whereNumber(['deckId', 'cardId'])->name('api.game.decks.card');
+        });
 
         Route::prefix('user')->group(function () {
             Route::get('/me', [MeController::class, 'show'])->name('me.show');

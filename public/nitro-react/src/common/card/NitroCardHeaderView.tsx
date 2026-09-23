@@ -1,15 +1,16 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { FC, MouseEvent, useCallback, useMemo } from 'react';
-import { Base, Column, ColumnProps, Flex } from '..';
+import { FC, MouseEvent, ReactNode, useCallback, useMemo } from 'react';
+import { Column, ColumnProps, Flex } from '..';
 
 interface NitroCardHeaderViewProps extends ColumnProps {
     headerText: string;
     noCloseButton?: boolean;
     onCloseClick: (event: MouseEvent) => void;
+    headerAccessory?: ReactNode;
 }
 
 export const NitroCardHeaderView: FC<NitroCardHeaderViewProps> = props => {
-    const { headerText = null, noCloseButton = false, onCloseClick = null, justifyContent = 'center', alignItems = 'center', classNames = [], children = null, ...rest } = props;
+    const { headerText = null, noCloseButton = false, onCloseClick = null, headerAccessory = null, justifyContent = 'center', alignItems = 'center', classNames = [], children = null, ...rest } = props;
 
     const getClassNames = useMemo(() => {
         const newClassNames: string[] = ['drag-handler', 'container-fluid', 'nitro-card-header'];
@@ -19,7 +20,7 @@ export const NitroCardHeaderView: FC<NitroCardHeaderViewProps> = props => {
         return newClassNames;
     }, [classNames]);
 
-    const onMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const onMouseDown = useCallback((event: MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         event.nativeEvent.stopImmediatePropagation();
     }, []);
@@ -28,10 +29,11 @@ export const NitroCardHeaderView: FC<NitroCardHeaderViewProps> = props => {
         <Column center position="relative" classNames={getClassNames} {...rest}>
             <Flex fullWidth center>
                 <span className="nitro-card-header-text">{headerText}</span>
+                {headerAccessory && <span className="nitro-card-header-accessory">{headerAccessory}</span>}
                 {!noCloseButton &&
-                    <Base position="absolute" className="end-2 nitro-card-header-close cursor-pointer" onMouseDownCapture={onMouseDown} onClick={onCloseClick}>
+                    <button type="button" aria-label={ `Fechar ${ headerText || 'janela' }` } className="position-absolute end-2 nitro-card-header-close cursor-pointer" onMouseDownCapture={onMouseDown} onClick={onCloseClick}>
                         <FontAwesomeIcon icon="times" />
-                    </Base>}
+                    </button>}
             </Flex>
         </Column>
     );

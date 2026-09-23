@@ -47,6 +47,7 @@ class CardCollectionServiceTest extends TestCase
             $table->string('password')->nullable();
         });
         (require __DIR__.'/../../database/migrations/2026_09_15_000000_create_card_collections.php')->up();
+        (require __DIR__.'/../../database/migrations/2026_09_15_010000_create_card_decks.php')->up();
         app(CardCatalogSeeder::class)->run();
         $this->user = User::withoutEvents(fn () => User::query()->create(['username' => 'teste123']));
         $this->pack = CardPack::query()->where('code', 'founders')->firstOrFail();
@@ -136,7 +137,7 @@ class CardCollectionServiceTest extends TestCase
         $this->service->open($this->user->id, $this->pack->id, (string) Str::uuid());
         $this->assertSame(0, Artisan::call('cards:seed-poc', ['username' => $this->user->username]));
         $this->assertSame(51, UserCardPack::query()->where('card_pack_id', $this->pack->id)->first()->quantity);
-        $this->assertSame(2, DB::table('user_card_pack_grants')->count());
+        $this->assertSame(3, DB::table('user_card_pack_grants')->count());
     }
 
     public function test_failure_writing_the_log_rolls_back_stock_and_reward(): void

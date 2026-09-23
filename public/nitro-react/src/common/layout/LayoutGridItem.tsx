@@ -35,6 +35,7 @@ export const LayoutGridItem: FC<LayoutGridItemProps> = props =>
         if(itemUnseen) newClassNames.push('unseen');
 
         if(itemHighlight) newClassNames.push('has-highlight');
+        if(itemColor) newClassNames.push('has-item-color');
 
         if(disabled) newClassNames.push('disabled')
 
@@ -43,7 +44,7 @@ export const LayoutGridItem: FC<LayoutGridItemProps> = props =>
         if(classNames.length) newClassNames.push(...classNames);
 
         return newClassNames;
-    }, [ itemActive, itemUniqueSoldout, itemUniqueNumber, itemUnseen, itemHighlight, disabled, itemImage, classNames ]);
+    }, [ itemActive, itemUniqueSoldout, itemUniqueNumber, itemUnseen, itemHighlight, itemColor, disabled, itemImage, classNames ]);
 
     const getStyle = useMemo(() =>
     {

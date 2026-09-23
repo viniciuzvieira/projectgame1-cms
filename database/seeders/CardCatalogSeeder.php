@@ -14,15 +14,20 @@ class CardCatalogSeeder extends Seeder
         DB::transaction(function () {
             $figure = 'hr-100.hd-180-7.ch-215-66.lg-270-79.sh-305-62.ha-1002-70.wa-2007';
             $sets = [
-                ['founders', 'Edicao Fundadores', 'O inicio da sua colecao. Herois que escreveram os primeiros capitulos.', 'SERIE 01', [
-                    ['cyber-hero', 'Cyber Hero', 'LENDARIO', 98, 10],
-                    ['forge-guardian', 'Guardiao da Forja', 'RARO', 82, 30],
-                    ['spark-runner', 'Corredor Faisca', 'COMUM', 65, 60],
+                ['founders', 'Edição Fundadores', 'O início da sua coleção. Heróis que escreveram os primeiros capítulos.', 'SÉRIE 01', [
+                    ['cyber-hero', 'Cyber Hero', 'LENDÁRIO', 98, 10],
+                    ['forge-guardian', 'Guardião da Forja', 'RARO', 82, 30],
+                    ['spark-runner', 'Corredor Faísca', 'COMUM', 65, 60],
                 ]],
-                ['arctic', 'Circuito Artico', 'Tecnologia glacial e exploradores das fronteiras digitais.', 'SERIE 02', [
-                    ['arctic-sentinel', 'Sentinela Artico', 'LENDARIO', 96, 10],
+                ['arctic', 'Circuito Ártico', 'Tecnologia glacial e exploradores das fronteiras digitais.', 'SÉRIE 02', [
+                    ['arctic-sentinel', 'Sentinela Ártico', 'LENDÁRIO', 96, 10],
                     ['neon-ranger', 'Patrulheiro Neon', 'RARO', 84, 30],
                     ['frost-scout', 'Batedor Glacial', 'COMUM', 68, 60],
+                ]],
+                ['arcade', 'Arcade Sintético', 'Relíquias portáteis, circuitos neon e guardiões de uma nova geração.', 'SÉRIE 03', [
+                    ['pixel-sovereign', 'Soberano Pixel', 'LENDÁRIO', 97, 10],
+                    ['byte-mechanic', 'Mecânico Byte', 'RARO', 83, 30],
+                    ['pocket-runner', 'Corredor Pocket', 'COMUM', 67, 60],
                 ]],
             ];
 

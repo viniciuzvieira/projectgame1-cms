@@ -10,6 +10,7 @@ class UserObserver
 {
     public function created(User $user)
     {
+        app(\App\Services\PlayerGameProfileService::class)->initialize($user->id);
         $user->settings()->create([
             'last_hc_payday' => setting('give_hc_on_register') == '1' ? now()->addYears(10)->unix() : 0,
         ]);
