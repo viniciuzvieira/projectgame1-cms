@@ -3,5 +3,9 @@ import { GetAvatarRenderManager } from './GetAvatarRenderManager';
 
 export function GetAvatarPalette(paletteId: number): IPalette
 {
-    return GetAvatarRenderManager().structureData.getPalette(paletteId);
+    const avatarRenderManager = GetAvatarRenderManager();
+
+    if(!avatarRenderManager || !avatarRenderManager.structureData) return null;
+
+    return avatarRenderManager.structureData.getPalette(paletteId);
 }

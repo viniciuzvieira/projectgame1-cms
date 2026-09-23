@@ -114,6 +114,7 @@
 
   function isChatOpen(doc) {
     try {
+      if (doc && doc.documentElement.dataset.keybindingCapture === "true") return true;
       return !!(doc && doc.body && doc.body.classList && doc.body.classList.contains("kb-chat-open"));
     } catch (_) {
       return false;

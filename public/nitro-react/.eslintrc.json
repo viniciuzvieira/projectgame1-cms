@@ -23,24 +23,23 @@
         "ecmaVersion": "latest",
         "sourceType": "module"
     },
-    "plugins": [
-        "react",
-        "@typescript-eslint"
-    ],
+    "plugins": ["react", "@typescript-eslint"],
     "rules": {
-        "linebreak-style": [ "off" ],
-        "quotes": [ "error", "single" ],
-        "@typescript-eslint/indent": [ "error", 4, { "SwitchCase": 1 } ],
-        "array-bracket-spacing": [ "error", "always" ],
-        "brace-style": [ "error", "allman" ],
-        "template-curly-spacing": [ "error", "always" ],
-        "no-multi-spaces": [ "error" ],
-        "jsx-quotes": [ "error" ],
-        "react/prop-types": [ "off" ],
-        "react/jsx-curly-spacing": [ "error", { "when": "always", "children": true } ],
-        "react/jsx-equals-spacing": [ "error" ],
-        "react/jsx-newline": [ "error", { "prevent": true } ],
-        "@typescript-eslint/object-curly-spacing": [ "error", "always",
+        "linebreak-style": ["off"],
+        "quotes": ["off"],
+        "@typescript-eslint/indent": ["error", 4, { "SwitchCase": 1 }],
+        "array-bracket-spacing": ["off"],
+        "brace-style": ["off"],
+        "template-curly-spacing": ["off"],
+        "no-multi-spaces": ["error"],
+        "jsx-quotes": ["off"],
+        "react/prop-types": ["off"],
+        "react/jsx-curly-spacing": ["off"],
+        "react/jsx-equals-spacing": ["off"],
+        "react/jsx-newline": ["off"],
+        "@typescript-eslint/object-curly-spacing": [
+            "error",
+            "always",
             {
                 "arraysInObjects": true,
                 "objectsInObjects": false
@@ -62,6 +61,6 @@
                 "extendDefaults": true
             }
         ],
-        "no-switch-case-fall-through": [ "off" ]
+        "no-switch-case-fall-through": ["off"]
     }
 }

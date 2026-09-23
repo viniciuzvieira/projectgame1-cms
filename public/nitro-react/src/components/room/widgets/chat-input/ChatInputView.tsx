@@ -37,6 +37,8 @@ export const ChatInputView: FC<ChatInputViewProps> = props => {
 
         if (!activeElement) return false;
         if (inputRef && (inputRef.current === activeElement)) return false;
+        if (activeElement instanceof HTMLSelectElement || activeElement instanceof HTMLButtonElement) return true;
+        if (activeElement instanceof HTMLElement && activeElement.isContentEditable) return true;
         if (!(activeElement instanceof HTMLInputElement) && !(activeElement instanceof HTMLTextAreaElement)) return false;
 
         return true;

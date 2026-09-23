@@ -1,0 +1,20 @@
+.game-context-menu-layer { position: fixed; inset: 0; z-index: 10000; pointer-events: none; }
+.game-context-menu {
+    position: fixed;
+    width: 216px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+    pointer-events: auto;
+    padding: 4px;
+    border: 2px solid var(--retro-ink, #101923);
+    border-radius: 3px;
+    background: #263c4c;
+    color: #eee9d9;
+    box-shadow: inset 0 0 0 1px #66818c, 4px 5px #07162288;
+    font-family: var(--retro-font, Ubuntu, sans-serif);
+    .game-context-menu-title { padding: 7px 8px; color: #9bb8c2; font-size: 11px; border-bottom: 1px solid #486574; overflow-wrap: anywhere; }
+    button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; padding: 8px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; overflow-wrap: anywhere; }
+    button:hover:not(:disabled), button:focus-visible { background: #425e69; color: #f6d8a8; outline: 1px solid #bca274; outline-offset: -1px; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+}

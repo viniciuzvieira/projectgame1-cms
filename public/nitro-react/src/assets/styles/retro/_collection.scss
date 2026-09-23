@@ -1,0 +1,124 @@
+.cyber-retro-ui .nitro-card-collection {
+    > .content-area { background: transparent; color: var(--retro-text); }
+    .collection-heading {
+        border: 1px solid #7b8d94;
+        border-left: 4px solid var(--retro-amber);
+        box-shadow: inset 0 1px rgba(224, 236, 216, .12), 0 2px #172b38;
+        background: repeating-linear-gradient(135deg, transparent 0 15px, rgba(195, 207, 190, .025) 15px 17px), rgba(52, 73, 88, .64);
+        h2 { font-family: var(--retro-font); font-size: 24px; font-weight: 700; letter-spacing: .15px; }
+        p { color: var(--retro-muted); }
+    }
+    .collection-eyebrow { color: var(--retro-amber); letter-spacing: 1.9px; }
+    .collection-totals strong { color: var(--retro-amber); font-family: var(--retro-font); }
+    .collection-totals small { color: var(--retro-muted); }
+    .collection-tabs .collection-tab-button {
+        border-color: #667d89;
+        border-radius: 2px 2px 0 0;
+        background: #304659;
+        color: var(--retro-muted);
+        box-shadow: inset 0 1px #708a95;
+        font-family: var(--retro-font);
+        &[aria-selected='true'] { background: #435b68; color: #f4ebd7; border-top-color: var(--retro-amber); border-bottom-color: #435b68; }
+        &:hover:not(:disabled) { background: #465f70; }
+        .collection-tab-count { background: #182f3e; color: var(--retro-mint); }
+    }
+    .collection-search { background: #172c3a; border-color: #667e8b; box-shadow: inset 1px 2px #0d1d29; }
+    .collection-search:focus-within { border-color: var(--retro-mint); }
+    .collection-search input { color: var(--retro-text); caret-color: var(--retro-amber); }
+    .collection-search input::placeholder { color: #adbdc5; }
+    .collection-columns { border-color: #66808b; background: transparent; box-shadow: inset 0 0 0 1px #142635; }
+    .collection-library { border-color: #5c7481; background: rgba(20, 35, 49, .18); }
+    .collection-section-heading { color: var(--retro-muted); }
+    .collection-section-heading strong { color: var(--retro-mint); }
+    .collection-tile { color: var(--retro-text); background: rgba(99, 127, 138, .1); border-radius: 3px; }
+    .collection-tile:hover:not(:disabled) { background: rgba(117, 149, 157, .2); }
+    .collection-tile.is-selected { border-color: var(--retro-mint); background: rgba(101, 154, 141, .18); box-shadow: inset 0 0 0 1px #3e726c, 0 2px #152a35; }
+    .collection-tile strong { color: var(--retro-text); }
+    .collection-tile small, .collection-notice { color: var(--retro-muted); }
+    .collection-quantity { color: #172c36; background: var(--retro-amber); border-color: #172b35; box-shadow: 2px 2px #102330; }
+    .collection-preview { background: rgba(71, 100, 109, .12); }
+    .collection-preview-caption { background: rgba(15, 32, 44, .4); border-color: #526f7b; }
+    .collection-preview-caption span { color: var(--retro-mint); }
+    .collection-preview-caption p { color: var(--retro-muted); }
+    .collection-empty, .collection-preview-placeholder, .collection-card-detail p { color: var(--retro-muted); }
+    .collection-empty h3, .collection-card-detail h3 { color: var(--retro-text); }
+    .collection-owned { color: var(--retro-mint); border-color: #587d7b; background: #263f49; }
+    .collection-error { color: #f8d9b6; border-color: #aa7259; background: #493d38; }
+    button:focus-visible, input:focus-visible { outline-color: var(--retro-amber); }
+
+    @media (max-width: 760px) { .collection-heading h2 { font-size: 18px; } }
+    @media (max-width: 560px) {
+        .collection-heading h2 { font-size: 16px; }
+        .collection-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+        .collection-tabs { grid-column: 1 / -1; }
+        .collection-search { min-width: 0; }
+    }
+}
+
+.cyber-retro-ui .nitro-card-collection {
+    --collection-browser-chrome: #2c4050;
+    > .content-area { gap: 0; padding: 10px; }
+    .collection-browser-tabs { display: flex; align-items: flex-end; gap: 4px; min-height: 44px; padding: 4px 6px 0 8px; flex-shrink: 0; z-index: 1; background: var(--collection-browser-chrome); }
+    .collection-browser-tabs .collection-tabs { gap: 4px; min-width: 0; overflow: visible; }
+    .collection-browser-tabs .collection-tab-shell { position: relative; display: flex; min-width: 0; }
+    .collection-browser-tabs .collection-orb { margin-left: auto; margin-right: 6px; flex-shrink: 0; }
+    .collection-browser-tabs .collection-tabs .collection-tab-button {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 0;
+        margin-bottom: -2px;
+        padding: 9px 20px 10px;
+        border: 2px solid #637e8a;
+        border-bottom-color: #718c96;
+        border-radius: 7px 7px 0 0;
+        background: #233746;
+        box-shadow: inset 0 1px #4e6977;
+        color: #b6c6c9;
+        &[aria-selected='true'] {
+            background: var(--collection-browser-chrome);
+            border-color: #718c96;
+            border-top-color: #dbb27b;
+            border-bottom-color: var(--collection-browser-chrome);
+            box-shadow: inset 0 1px #dbb27b;
+            color: #f2e4cd;
+            z-index: 2;
+        }
+        &:hover:not(:disabled):not([aria-selected='true']) { background: #3a515f; }
+        .collection-tab-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .collection-tab-count { display: inline-block; flex-shrink: 0; margin: 0; border-radius: 3px; padding: 2px 6px; font-size: 11px; }
+        .game-pixel-icon { width: 20px; height: 20px; flex: 0 0 20px; }
+    }
+    .collection-tab-shell.is-closable .collection-tab-button { padding-right: 34px; }
+    .collection-tab-close { position: absolute; z-index: 3; right: 6px; top: 50%; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; transform: translateY(-50%); border: 0; background: transparent; color: var(--retro-muted); font-size: 18px; line-height: 1; &:hover:not(:disabled), &:focus-visible { background: var(--desktop-selection); color: var(--retro-text); outline: 1px solid var(--retro-line); } }
+    .collection-new-tab, .collection-browser-close { display: grid; place-items: center; flex: 0 0 35px; height: 34px; margin-bottom: 2px; border: 1px solid #637e8a; background: #233746; color: var(--retro-text); box-shadow: inset 1px 1px #4e6977; font-size: 22px; line-height: 1; }
+    .collection-new-tab:hover:not(:disabled) { background: #3a515f; }
+    .collection-browser-close { margin-left: auto; border-color: #47252d; background: #a34f52; color: #fff; font-size: 25px; text-shadow: 1px 1px #4b1f25; }
+    .collection-browser-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; border: 2px solid #718c96; border-radius: 3px; overflow: hidden; background: rgba(17, 34, 46, .12); }
+    .collection-browser-panel .collection-tools { display: flex; padding: 12px; gap: 10px; background: var(--collection-browser-chrome); border-bottom: 1px solid #526e7c; }
+    .collection-browser-panel .collection-search { min-width: 0; }
+    .collection-browser-panel .collection-columns { border: 0; box-shadow: none; }
+    .collection-search-field { display: flex; align-items: center; flex: 1; min-width: 0; cursor: text; }
+    .collection-address-prefix { flex-shrink: 0; }
+    .collection-blank-tab { display: flex; flex: 1; min-height: 0; align-items: center; justify-content: center; gap: 12px; color: var(--retro-muted); font-size: 18px; .game-pixel-icon { width: 42px; height: 42px; opacity: .75; } }
+    .collection-dialog-layer { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; padding: 20px; background: rgba(7, 9, 13, .6); }
+    .collection-new-deck-dialog { width: 370px; max-width: 100%; padding: 12px; border: 2px solid var(--retro-line); background: var(--desktop-chrome); color: var(--retro-text); box-shadow: var(--desktop-bevel), 5px 5px var(--desktop-shadow); header { display: flex; align-items: center; gap: 9px; padding-bottom: 9px; border-bottom: 1px solid var(--retro-line); font-size: 18px; font-weight: 700; .game-pixel-icon { width: 30px; height: 30px; } } p { margin: 12px 0; color: var(--retro-muted); font-size: 14px; } input { width: 100%; font-size: 16px; } footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; } }
+    .collection-error { margin: 0; border-width: 0 0 1px; }
+    @media (max-width: 560px) {
+        > .content-area { padding: 8px; }
+        .collection-browser-tabs { padding-left: 3px; }
+        .collection-browser-tabs .collection-tabs { gap: 3px; }
+        .collection-browser-tabs .collection-tabs .collection-tab-button { padding: 8px 8px 9px; font-size: 13px; white-space: nowrap; }
+        .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 30px; }
+        .collection-browser-tabs .collection-orb { width: 40px; height: 34px; margin-right: 0; }
+        .collection-browser-panel .collection-tools { padding: 10px 8px; gap: 8px; }
+    }
+    @media (max-width: 380px) {
+        .collection-browser-tabs { gap: 4px; padding-left: 0; }
+        .collection-browser-tabs .collection-tabs .collection-tab-button { padding-inline: 5px; font-size: 12px; }
+        .collection-browser-tabs .collection-tab-shell.is-closable .collection-tab-button { padding-right: 27px; }
+        .collection-browser-tabs .collection-tabs .collection-tab-count { padding-inline: 3px; }
+    }
+}

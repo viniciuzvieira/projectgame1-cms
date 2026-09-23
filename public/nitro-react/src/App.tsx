@@ -138,7 +138,7 @@ export const App: FC<{}> = props => {
     }, []);
 
     return (
-        <Base fit overflow="hidden" className={imageRendering && 'image-rendering-pixelated'}>
+        <Base fit overflow="hidden" className={ `cyber-retro-ui${ imageRendering ? ' image-rendering-pixelated' : '' }` }>
             {(!isReady || isError) &&
                 <LoadingView isError={isError} message={message} percent={percent} />}
 

@@ -273,6 +273,7 @@ const useNotificationState = () =>
 
     useMessageEvent<MOTDNotificationEvent>(MOTDNotificationEvent, event =>
     {
+        if(!GetConfiguration<boolean>('notifications.motd.enabled', false)) return;
         const parser = event.getParser();
 
         const messages = parser.messages.map(message => cleanText(message));

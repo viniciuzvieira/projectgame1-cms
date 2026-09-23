@@ -7,11 +7,12 @@ import { AvatarEditorIcon } from './AvatarEditorIcon';
 export interface AvatarEditorFigurePreviewViewProps
 {
     figureData: FigureData;
+    showAvatarLoading?: boolean;
 }
 
 export const AvatarEditorFigurePreviewView: FC<AvatarEditorFigurePreviewViewProps> = props =>
 {
-    const { figureData = null } = props;
+    const { figureData = null, showAvatarLoading = false } = props;
     const [ updateId, setUpdateId ] = useState(-1);
 
     const rerender = useCallback(() =>
@@ -48,7 +49,13 @@ export const AvatarEditorFigurePreviewView: FC<AvatarEditorFigurePreviewViewProp
 
     return (
         <Column className="figure-preview-container" overflow="hidden" position="relative">
-            <LayoutAvatarImageView figure={ figureData.getFigureString() } direction={ figureData.direction } scale={ 2 } />
+            <LayoutAvatarImageView
+                figure={ figureData.getFigureString() }
+                direction={ figureData.direction }
+                scale={ 2 }
+                showLoading={ showAvatarLoading }
+                loadingSize="small"
+            />
             <AvatarEditorIcon className="avatar-spotlight" icon="spotlight" />
             <Base className="avatar-shadow" />
             <Base className="arrow-container">

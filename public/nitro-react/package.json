@@ -4,6 +4,7 @@
   "homepage": ".",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/generate-card-pack-thumbnails.cjs",
     "start": "cross-env SKIP_PREFLIGHT_CHECK=true BROWSER=none IMAGE_INLINE_SIZE_LIMIT=100000 craco --openssl-legacy-provider start",
     "build": "cross-env SKIP_PREFLIGHT_CHECK=true GENERATE_SOURCEMAP=false IMAGE_INLINE_SIZE_LIMIT=100000 craco --openssl-legacy-provider build",
     "build:prod": "npx browserslist@latest --update-db && yarn build",

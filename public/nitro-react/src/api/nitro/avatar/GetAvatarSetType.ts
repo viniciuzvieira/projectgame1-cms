@@ -3,5 +3,9 @@ import { GetAvatarRenderManager } from './GetAvatarRenderManager';
 
 export function GetAvatarSetType(setType: string): ISetType
 {
-    return GetAvatarRenderManager().structureData.getSetType(setType);
+    const avatarRenderManager = GetAvatarRenderManager();
+
+    if(!avatarRenderManager || !avatarRenderManager.structureData) return null;
+
+    return avatarRenderManager.structureData.getSetType(setType);
 }

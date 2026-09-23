@@ -158,7 +158,7 @@
     <script nomodule src="{{ asset('assets/yt-overlay/js/' . $ytAppLegacy) }}"></script>
 @endif
 
-<script src="{{ asset('js/keyboardwalk-controls.js') }}"></script>
+<script src="{{ asset('js/keyboardwalk-controls.js') }}?v={{ filemtime(public_path('js/keyboardwalk-controls.js')) }}"></script>
 
 <script>
     window.addEventListener('DOMContentLoaded', () => {
@@ -226,11 +226,16 @@
 </script>
 
 <script src="{{ asset('assets/js/atom.js') }}"></script>
-<script src="{{ asset('assets/ui/terminal/kb-terminal-popup.js') }}"></script>
-<script src="{{ asset('assets/ui/terminal/kb-terminal-chat.js') }}"></script>
+<script src="{{ asset('assets/ui/terminal/kb-terminal-popup.js') }}?v={{ filemtime(public_path('assets/ui/terminal/kb-terminal-popup.js')) }}"></script>
+<script src="{{ asset('assets/ui/terminal/kb-terminal-chat.js') }}?v={{ filemtime(public_path('assets/ui/terminal/kb-terminal-chat.js')) }}"></script>
 <script>
     window.addEventListener('DOMContentLoaded', () => {
         const ENABLE_PING_TERMINAL = false;
+        const hasActiveGameSession = @json(request()->filled('sso'));
+
+        if (!hasActiveGameSession) {
+            return;
+        }
 
         if (ENABLE_PING_TERMINAL) {
             KBTerminalPopup.init({

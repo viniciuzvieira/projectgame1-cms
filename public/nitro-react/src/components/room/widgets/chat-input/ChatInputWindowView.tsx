@@ -3,6 +3,7 @@ import { FC, useCallback, useEffect, useState } from 'react';
 import { AddEventLinkTracker, GetRoomSession, RemoveLinkEventTracker } from '../../../../api';
 import { DraggableWindowPosition, NitroCardContentView, NitroCardHeaderView, NitroCardView } from '../../../../common';
 import { ChatInputView } from './ChatInputView';
+import { getGamePreferences } from '../../../game-shell/GameProfile';
 
 export const ChatInputWindowView: FC<{}> = props => {
     const [isVisible, setIsVisible] = useState<boolean>(false);
@@ -14,6 +15,8 @@ export const ChatInputWindowView: FC<{}> = props => {
 
         if (node instanceof HTMLInputElement) return true;
         if (node instanceof HTMLTextAreaElement) return true;
+        if (node instanceof HTMLSelectElement) return true;
+        if (node instanceof HTMLElement && node.closest('.game-context-menu-layer')) return true;
         if ((node as any).isContentEditable === true) return true;
 
         return false;
@@ -64,12 +67,12 @@ export const ChatInputWindowView: FC<{}> = props => {
         if (GetRoomSession().isSpectator) return;
 
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.ctrlKey || event.altKey || event.metaKey) return;
+            if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || document.documentElement.dataset.keybindingCapture === 'true') return;
 
             // se estiver digitando em qualquer input/textarea/contenteditable, não intercepta
             if (isTypingTarget(event.target)) return;
 
-            if (event.code === 'KeyC') {
+            if (event.code === getGamePreferences().terminal_key) {
                 event.preventDefault();
                 event.stopPropagation();
 
@@ -104,7 +107,7 @@ export const ChatInputWindowView: FC<{}> = props => {
             className="nitro-chat-input-window"
             theme="primary-slim"
             windowPosition={DraggableWindowPosition.CENTER}
-            offsetLeft={260}  /* quanto maior, mais pra esquerda */
+            offsetLeft={260} /* quanto maior, mais pra esquerda */
             offsetTop={170}>
             <NitroCardHeaderView headerText="Chat" onCloseClick={() => setIsVisible(false)} />
             <NitroCardContentView overflow="visible" className="p-2">

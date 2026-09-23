@@ -1,184 +1,122 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ILinkEventTracker, NitroSettingsEvent, UserSettingsCameraFollowComposer, UserSettingsEvent, UserSettingsOldChatComposer, UserSettingsRoomInvitesComposer, UserSettingsSoundComposer } from '@nitrots/nitro-renderer';
-import { FC, useCallback, useEffect, useState } from 'react';
-import { AddEventLinkTracker, DispatchMainEvent, DispatchUiEvent, LocalizeText, RemoveLinkEventTracker, SendMessageComposer } from '../../api';
-import { Column, Flex, NitroCardContentView, NitroCardHeaderView, NitroCardView, Text } from '../../common';
+import { FC, useEffect, useState } from 'react';
+import { AddEventLinkTracker, DispatchMainEvent, DispatchUiEvent, RemoveLinkEventTracker, SendMessageComposer } from '../../api';
+import { NitroCardContentView, NitroCardHeaderView, NitroCardView } from '../../common';
 import { useCatalogPlaceMultipleItems, useCatalogSkipPurchaseConfirmation, useMessageEvent } from '../../hooks';
+import { GameIcon } from '../game-shell/GameIcon';
+import { useGameLocale } from '../game-shell/GameLocale';
+import { GameTheme, keyLabel, loadGameProfile, saveGamePreferences, useGameProfile, validTerminalKey } from '../game-shell/GameProfile';
 
-export const UserSettingsView: FC<{}> = props =>
+const tabs = [{ id: 'appearance', label: 'Aparência' }, { id: 'audio', label: 'Som' }, { id: 'controls', label: 'Teclas' }, { id: 'gameplay', label: 'Jogo' }];
+
+export const UserSettingsView: FC = () =>
 {
-    const [ isVisible, setIsVisible ] = useState(false);
-    const [ userSettings, setUserSettings ] = useState<NitroSettingsEvent>(null);
-    const [ catalogPlaceMultipleObjects, setCatalogPlaceMultipleObjects ] = useCatalogPlaceMultipleItems();
-    const [ catalogSkipPurchaseConfirmation, setCatalogSkipPurchaseConfirmation ] = useCatalogSkipPurchaseConfirmation();
-
-    const processAction = useCallback((type: string, value?: boolean | number | string) =>
-    {
-        let doUpdate = true;
-
-        const clone = userSettings.clone();
-
-        switch(type)
-        {
-            case 'close_view':
-                setIsVisible(false);
-                doUpdate = false;
-                return;
-            case 'oldchat':
-                clone.oldChat = value as boolean;
-                SendMessageComposer(new UserSettingsOldChatComposer(clone.oldChat));
-                break;
-            case 'room_invites':
-                clone.roomInvites = value as boolean;
-                SendMessageComposer(new UserSettingsRoomInvitesComposer(clone.roomInvites));
-                break;
-            case 'camera_follow':
-                clone.cameraFollow = value as boolean;
-                SendMessageComposer(new UserSettingsCameraFollowComposer(clone.cameraFollow));
-                break;
-            case 'system_volume':
-                clone.volumeSystem = value as number;
-                clone.volumeSystem = Math.max(0, clone.volumeSystem);
-                clone.volumeSystem = Math.min(100, clone.volumeSystem);
-                break;
-            case 'furni_volume':
-                clone.volumeFurni = value as number;
-                clone.volumeFurni = Math.max(0, clone.volumeFurni);
-                clone.volumeFurni = Math.min(100, clone.volumeFurni);
-                break;
-            case 'trax_volume':
-                clone.volumeTrax = value as number;
-                clone.volumeTrax = Math.max(0, clone.volumeTrax);
-                clone.volumeTrax = Math.min(100, clone.volumeTrax);
-                break;
-        }
-
-        if(doUpdate) setUserSettings(clone);
-        
-        DispatchMainEvent(clone)
-    }, [ userSettings ]);
-
-    const saveRangeSlider = useCallback((type: string) =>
-    {
-        switch(type)
-        {
-            case 'volume':
-                SendMessageComposer(new UserSettingsSoundComposer(Math.round(userSettings.volumeSystem), Math.round(userSettings.volumeFurni), Math.round(userSettings.volumeTrax)));
-                break;
-        }
-    }, [ userSettings ]);
+    const [ visible, setVisible ] = useState(false);
+    const [ tab, setTab ] = useState('appearance');
+    const [ settings, setSettings ] = useState<NitroSettingsEvent>(null);
+    const [ capturing, setCapturing ] = useState(false);
+    const [ message, setMessage ] = useState('');
+    const [ placeMultiple, setPlaceMultiple ] = useCatalogPlaceMultipleItems();
+    const [ skipConfirmation, setSkipConfirmation ] = useCatalogSkipPurchaseConfirmation();
+    const profile = useGameProfile();
+    const { t } = useGameLocale();
 
     useMessageEvent<UserSettingsEvent>(UserSettingsEvent, event =>
     {
         const parser = event.getParser();
-        const settingsEvent = new NitroSettingsEvent();
-
-        settingsEvent.volumeSystem = parser.volumeSystem;
-        settingsEvent.volumeFurni = parser.volumeFurni;
-        settingsEvent.volumeTrax = parser.volumeTrax;
-        settingsEvent.oldChat = parser.oldChat;
-        settingsEvent.roomInvites = parser.roomInvites;
-        settingsEvent.cameraFollow = parser.cameraFollow;
-        settingsEvent.flags = parser.flags;
-        settingsEvent.chatType = parser.chatType;
-
-        setUserSettings(settingsEvent);
-        DispatchMainEvent(settingsEvent);
+        const next = new NitroSettingsEvent();
+        next.volumeSystem = parser.volumeSystem; next.volumeFurni = parser.volumeFurni; next.volumeTrax = parser.volumeTrax;
+        next.oldChat = parser.oldChat; next.roomInvites = parser.roomInvites; next.cameraFollow = parser.cameraFollow;
+        next.flags = parser.flags; next.chatType = parser.chatType;
+        setSettings(next); DispatchMainEvent(next);
     });
-
     useEffect(() =>
     {
-        const linkTracker: ILinkEventTracker = {
-            linkReceived: (url: string) =>
-            {
-                const parts = url.split('/');
-
-                if(parts.length < 2) return;
-        
-                switch(parts[1])
-                {
-                    case 'show':
-                        setIsVisible(true);
-                        return;
-                    case 'hide':
-                        setIsVisible(false);
-                        return;
-                    case 'toggle':
-                        setIsVisible(prevValue => !prevValue);
-                        return;
-                }
-            },
-            eventUrlPrefix: 'user-settings/'
-        };
-
-        AddEventLinkTracker(linkTracker);
-
-        return () => RemoveLinkEventTracker(linkTracker);
+        const tracker: ILinkEventTracker = { eventUrlPrefix: 'user-settings/', linkReceived: url =>
+        {
+            const action = url.split('/')[1];
+            if(action === 'toggle') setVisible(value => !value);
+            if(action === 'show') setVisible(true);
+            if(action === 'hide') setVisible(false);
+        } };
+        AddEventLinkTracker(tracker);
+        return () => RemoveLinkEventTracker(tracker);
     }, []);
-
+    useEffect(() => { if(settings) DispatchUiEvent(settings); }, [ settings ]);
+    useEffect(() => { if(visible) loadGameProfile(); else setCapturing(false); }, [ visible ]);
     useEffect(() =>
     {
-        if(!userSettings) return;
+        if(!capturing || !visible || tab !== 'controls') return;
+        document.documentElement.dataset.keybindingCapture = 'true';
+        const capture = (event: KeyboardEvent) =>
+        {
+            event.preventDefault(); event.stopImmediatePropagation();
+            if(event.repeat) return;
+            if(event.key === 'Escape') { setCapturing(false); return; }
+            if(['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) { setMessage('WASD é reservado para movimentação.'); return; }
+            if(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || !validTerminalKey(event.code))
+            { setMessage('Use uma letra, número ou pontuação, sem modificadores.'); return; }
+            setCapturing(false); setMessage('');
+            saveGamePreferences({ terminal_key: event.code });
+        };
+        window.addEventListener('keydown', capture, true);
+        return () =>
+        {
+            delete document.documentElement.dataset.keybindingCapture;
+            window.removeEventListener('keydown', capture, true);
+        };
+    }, [ capturing, visible, tab ]);
 
-        DispatchUiEvent(userSettings);
-    }, [ userSettings ]);
-
-    if(!isVisible || !userSettings) return null;
-
-    return (
-        <NitroCardView uniqueKey="user-settings" className="user-settings-window" theme="primary-slim">
-            <NitroCardHeaderView headerText={ LocalizeText('widget.memenu.settings.title') } onCloseClick={ event => processAction('close_view') } />
-            <NitroCardContentView className="text-black">
-                <Column gap={ 1 }>
-                    <Flex alignItems="center" gap={ 1 }>
-                        <input className="form-check-input" type="checkbox" checked={ userSettings.oldChat } onChange={ event => processAction('oldchat', event.target.checked) } />
-                        <Text>{ LocalizeText('memenu.settings.chat.prefer.old.chat') }</Text>
-                    </Flex>
-                    <Flex alignItems="center" gap={ 1 }>
-                        <input className="form-check-input" type="checkbox" checked={ userSettings.roomInvites } onChange={ event => processAction('room_invites', event.target.checked) } />
-                        <Text>{ LocalizeText('memenu.settings.other.ignore.room.invites') }</Text>
-                    </Flex>
-                    <Flex alignItems="center" gap={ 1 }>
-                        <input className="form-check-input" type="checkbox" checked={ userSettings.cameraFollow } onChange={ event => processAction('camera_follow', event.target.checked) } />
-                        <Text>{ LocalizeText('memenu.settings.other.disable.room.camera.follow') }</Text>
-                    </Flex>
-                    <Flex alignItems="center" gap={ 1 }>
-                        <input className="form-check-input" type="checkbox" checked={ catalogPlaceMultipleObjects } onChange={ event => setCatalogPlaceMultipleObjects(event.target.checked) } />
-                        <Text>{ LocalizeText('memenu.settings.other.place.multiple.objects') }</Text>
-                    </Flex>
-                    <Flex alignItems="center" gap={ 1 }>
-                        <input className="form-check-input" type="checkbox" checked={ catalogSkipPurchaseConfirmation } onChange={ event => setCatalogSkipPurchaseConfirmation(event.target.checked) } />
-                        <Text>{ LocalizeText('memenu.settings.other.skip.purchase.confirmation') }</Text>
-                    </Flex>
-                </Column>
-                <Column>
-                    <Text bold>{ LocalizeText('widget.memenu.settings.volume') }</Text>
-                    <Column gap={ 1 }>
-                        <Text>{ LocalizeText('widget.memenu.settings.volume.ui') }</Text>
-                        <Flex alignItems="center" gap={ 1 }>
-                            <FontAwesomeIcon icon={ ((userSettings.volumeSystem === 0) ? 'volume-mute' : (userSettings.volumeSystem > 0) ? 'volume-down' : null) } className={ (userSettings.volumeSystem >= 50) ? 'text-muted' : '' } />
-                            <input type="range" className="custom-range w-100" min="0" max="100" step="1" id="volumeSystem" value={ userSettings.volumeSystem } onChange={ event => processAction('system_volume', event.target.value) } onMouseUp={ () => saveRangeSlider('volume') }/>
-                            <FontAwesomeIcon icon="volume-up" className={ (userSettings.volumeSystem < 50) ? 'text-muted' : '' } />
-                        </Flex>
-                    </Column>
-                    <Column gap={ 1 }>
-                        <Text>{ LocalizeText('widget.memenu.settings.volume.furni') }</Text>
-                        <Flex alignItems="center" gap={ 1 }>
-                            <FontAwesomeIcon icon={ ((userSettings.volumeFurni === 0) ? 'volume-mute' : (userSettings.volumeFurni > 0) ? 'volume-down' : null) } className={ (userSettings.volumeFurni >= 50) ? 'text-muted' : '' } />
-                            <input type="range" className="custom-range w-100" min="0" max="100" step="1" id="volumeFurni" value={ userSettings.volumeFurni } onChange={ event => processAction('furni_volume', event.target.value) } onMouseUp={ () => saveRangeSlider('volume') }/>
-                            <FontAwesomeIcon icon="volume-up" className={ (userSettings.volumeFurni < 50) ? 'text-muted' : '' } />
-                        </Flex>
-                    </Column>
-                    <Column gap={ 1 }>
-                        <Text>{ LocalizeText('widget.memenu.settings.volume.trax') }</Text>
-                        <Flex alignItems="center" gap={ 1 }>
-                            <FontAwesomeIcon icon={ ((userSettings.volumeTrax === 0) ? 'volume-mute' : (userSettings.volumeTrax > 0) ? 'volume-down' : null) } className={ (userSettings.volumeTrax >= 50) ? 'text-muted' : '' } />
-                            <input type="range" className="custom-range w-100" min="0" max="100" step="1" id="volumeTrax" value={ userSettings.volumeTrax } onChange={ event => processAction('trax_volume', event.target.value) } onMouseUp={ () => saveRangeSlider('volume') }/>
-                            <FontAwesomeIcon icon="volume-up" className={ (userSettings.volumeTrax < 50) ? 'text-muted' : '' } />
-                        </Flex>
-                    </Column>
-                </Column>
-            </NitroCardContentView>
-        </NitroCardView>
-    );
-}
+    const update = (field: string, value: boolean | number) =>
+    {
+        if(!settings) return;
+        const next = settings.clone();
+        next[field] = value;
+        if(field === 'oldChat') SendMessageComposer(new UserSettingsOldChatComposer(value as boolean));
+        if(field === 'roomInvites') SendMessageComposer(new UserSettingsRoomInvitesComposer(value as boolean));
+        if(field === 'cameraFollow') SendMessageComposer(new UserSettingsCameraFollowComposer(value as boolean));
+        setSettings(next); DispatchMainEvent(next);
+    };
+    const saveVolume = () =>
+    {
+        if(settings) SendMessageComposer(new UserSettingsSoundComposer(Math.round(settings.volumeSystem), Math.round(settings.volumeFurni), Math.round(settings.volumeTrax)));
+    };
+    if(!visible) return null;
+    const disabled = !profile.loaded || profile.saving;
+    const audio = [{ field: 'volumeSystem', label: 'Efeitos da interface' }, { field: 'volumeFurni', label: 'Objetos do quarto' }, { field: 'volumeTrax', label: 'Música' }];
+    return <NitroCardView uniqueKey="user-settings" className="user-settings-window game-settings" theme="primary-slim">
+        <NitroCardHeaderView headerText={ t('Configurações') } onCloseClick={ () => setVisible(false) } />
+        <NitroCardContentView gap={ 0 }>
+            <div className="game-settings-layout">
+                <nav className="game-settings-nav" aria-label={ t('Configurações') } role="tablist" aria-orientation="vertical">
+                    <div className="game-settings-mark" aria-hidden="true">CH<span>CONTROL CENTER</span></div>
+                    { tabs.map(item => <button key={ item.id } role="tab" id={ `settings-tab-${ item.id }` } aria-selected={ tab === item.id } aria-controls="settings-panel" onClick={ () => { setTab(item.id); setCapturing(false); setMessage(''); } }><GameIcon name={ item.id } />{ t(item.label) }</button>) }
+                </nav>
+                <section className="game-settings-panel" id="settings-panel" role="tabpanel" aria-labelledby={ `settings-tab-${ tab }` }>
+                    <span className="game-section-code">SYSTEM / { String(tabs.findIndex(item => item.id === tab) + 1).padStart(2, '0') }</span>
+                    <h2>{ t(tabs.find(item => item.id === tab).label) }</h2>
+                    { tab === 'appearance' && <>
+                        <p>{ t('Personalize sua estação') }</p>
+                        <fieldset disabled={ disabled }><legend>{ t('Tema da interface') }</legend>
+                            <div className="theme-options">{ ([['dark', 'Escuro'], ['purple', 'Roxo'], ['light', 'Claro']] as [GameTheme, string][]).map(([theme, label]) => <button key={ theme } className={ `theme-choice theme-preview-${ theme }` } aria-pressed={ profile.preferences.theme === theme } onClick={ () => saveGamePreferences({ theme }) }><span className="theme-preview"><i /><b /><i /></span>{ t(label) }</button>) }</div>
+                        </fieldset>
+                        <label className="settings-row" htmlFor="game-locale">{ t('Idioma') }<select id="game-locale" disabled={ disabled } value={ profile.preferences.locale } onChange={ event => saveGamePreferences({ locale: event.target.value as 'pt' | 'en' | 'es' }) }><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></label>
+                    </> }
+                    { tab === 'audio' && (settings ? audio.map(item => <label key={ item.field } className="settings-volume" htmlFor={ item.field }><span><GameIcon name="audio" />{ t(item.label) }<output>{ Math.round(settings[item.field]) }%</output></span><input id={ item.field } type="range" min="0" max="100" step="1" value={ settings[item.field] } onChange={ event => update(item.field, Number(event.target.value)) } onPointerUp={ saveVolume } onKeyUp={ saveVolume } onBlur={ saveVolume } /></label>) : <p role="status">{ t('Carregando...') }</p>) }
+                    { tab === 'controls' && <>
+                        <div className="settings-key-row"><span><b>{ t('Terminal') }</b><small>{ t('Alterar tecla') }</small></span><button className={ capturing ? 'is-capturing' : '' } disabled={ disabled } onClick={ () => { setCapturing(true); setMessage(''); } }>{ capturing ? t('Pressione uma tecla. Esc cancela.') : <kbd>{ keyLabel(profile.preferences.terminal_key) }</kbd> }</button></div>
+                        <div className="settings-key-row"><span><b>{ t('Movimentação') }</b><small>{ t('WASD é reservado para movimentação.') }</small></span><span className="movement-keys">{ ['W', 'A', 'S', 'D'].map(key => <kbd key={ key }>{ key }</kbd>) }</span></div>
+                        { message && <p role="alert" className="settings-warning">{ t(message) }</p> }
+                        <button className="btn btn-secondary" disabled={ disabled || capturing || profile.preferences.terminal_key === 'KeyC' } onClick={ () => saveGamePreferences({ terminal_key: 'KeyC' }) }>{ t('Restaurar C') }</button>
+                    </> }
+                    { tab === 'gameplay' && (settings ? <>
+                        { [{ field: 'oldChat', label: 'Chat clássico' }, { field: 'roomInvites', label: 'Ignorar convites de quartos' }, { field: 'cameraFollow', label: 'Desativar câmera seguindo avatar' }].map(item => <label key={ item.field } className="settings-row"><span>{ t(item.label) }</span><input type="checkbox" checked={ settings[item.field] } onChange={ event => update(item.field, event.target.checked) } /></label>) }
+                        <label className="settings-row">{ t('Colocar vários objetos') }<input type="checkbox" checked={ placeMultiple } onChange={ event => setPlaceMultiple(event.target.checked) } /></label>
+                        <label className="settings-row">{ t('Pular confirmação de compra') }<input type="checkbox" checked={ skipConfirmation } onChange={ event => setSkipConfirmation(event.target.checked) } /></label>
+                    </> : <p role="status">{ t('Carregando...') }</p>) }
+                    <footer className="settings-status" role="status">{ profile.error ? <>{ t('Não foi possível salvar. Tente novamente.') } <button onClick={ loadGameProfile }>{ t('Tentar novamente') }</button></> : t(profile.saving ? 'Salvando...' : 'As alterações ficam salvas na sua conta.') }</footer>
+                </section>
+            </div>
+        </NitroCardContentView>
+    </NitroCardView>;
+};

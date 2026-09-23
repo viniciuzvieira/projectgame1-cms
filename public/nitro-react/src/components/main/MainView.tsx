@@ -7,6 +7,10 @@ import { AchievementsView } from '../achievements/AchievementsView';
 import { AvatarEditorView } from '../avatar-editor/AvatarEditorView';
 import { CameraWidgetView } from '../camera/CameraWidgetView';
 import { CampaignView } from '../campaign/CampaignView';
+import { GameResourcesView } from '../game-shell/GameResourcesView';
+import { GameSkillsView } from '../game-shell/GameSkillsView';
+import { CardCollectionView } from '../card-packs/CardCollectionView';
+import { GameContextMenuView } from '../game-context-menu/GameContextMenuView';
 import { CatalogView } from '../catalog/CatalogView';
 import { ChatHistoryView } from '../chat-history/ChatHistoryView';
 import { FloorplanEditorView } from '../floorplan-editor/FloorplanEditorView';
@@ -101,6 +105,10 @@ export const MainView: FC<{}> = props => {
             <GuideToolView />
             <HcCenterView />
             <CampaignView />
+            <GameResourcesView />
+            <GameSkillsView />
+            <CardCollectionView />
+            <GameContextMenuView />
         </Base>
     );
 }

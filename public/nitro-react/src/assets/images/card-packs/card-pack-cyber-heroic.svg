@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="205" height="285" viewBox="0 0 205 285">
+  <defs>
+    <clipPath id="pack-shape">
+      <rect x="1.5" y="1.5" width="202" height="282" rx="6" />
+    </clipPath>
+    <linearGradient id="pack-color" gradientUnits="userSpaceOnUse" x1="2" y1="-1" x2="203" y2="286">
+      <stop offset="0" stop-color="#f8d65f" />
+      <stop offset="0.18" stop-color="#f8d65f" />
+      <stop offset="0.18" stop-color="#ef7728" />
+      <stop offset="0.38" stop-color="#ef7728" />
+      <stop offset="0.38" stop-color="#d73526" />
+      <stop offset="0.65" stop-color="#d73526" />
+      <stop offset="0.65" stop-color="#8e1f2b" />
+      <stop offset="1" stop-color="#8e1f2b" />
+    </linearGradient>
+    <linearGradient id="pack-rails" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="205" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0" />
+      <stop offset="0.12" stop-color="#fff" stop-opacity="0" />
+      <stop offset="0.12" stop-color="#fff" stop-opacity="0.16" />
+      <stop offset="0.17" stop-color="#fff" stop-opacity="0.16" />
+      <stop offset="0.17" stop-color="#fff" stop-opacity="0" />
+      <stop offset="0.82" stop-color="#000" stop-opacity="0" />
+      <stop offset="0.82" stop-color="#000" stop-opacity="0.18" />
+      <stop offset="0.88" stop-color="#000" stop-opacity="0.18" />
+      <stop offset="0.88" stop-color="#000" stop-opacity="0" />
+      <stop offset="1" stop-color="#000" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#pack-shape)">
+    <rect width="205" height="285" fill="url(#pack-color)" />
+    <rect width="205" height="285" fill="url(#pack-rails)" />
+    <path d="M184 20 L236 20 L152 285 L100 285 Z" fill="#ffeda9" fill-opacity="0.13" />
+    <rect y="265" width="205" height="20" fill="#64192a" />
+    <rect x="3.5" y="3.5" width="198" height="278" rx="4" fill="none" stroke="#ffd977" stroke-width="2" />
+    <rect x="6.5" y="6.5" width="192" height="272" rx="2" fill="none" stroke="#50101b" stroke-opacity="0.42" stroke-width="3" />
+
+    <text x="102.5" y="67" fill="#fff4c9" stroke="#5b1723" stroke-width="2" paint-order="stroke" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="9" font-weight="900" letter-spacing="0.8">EDICAO FUNDADORES</text>
+    <text x="102.5" y="102" fill="#fff4c9" stroke="#5b1723" stroke-width="3" paint-order="stroke" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="27" font-weight="900">CYBER</text>
+    <text x="102.5" y="126" fill="#fff4c9" stroke="#5b1723" stroke-width="3" paint-order="stroke" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="27" font-weight="900">HEROIC</text>
+
+    <g transform="translate(105.5 176.5) rotate(45)">
+      <rect x="-27" y="-27" width="59" height="59" fill="#3e1320" fill-opacity="0.48" />
+    </g>
+    <g transform="translate(102.5 172.5) rotate(45)">
+      <rect x="-29.5" y="-29.5" width="59" height="59" fill="#ffd75d" stroke="#3e1320" stroke-width="4" />
+      <rect x="-15.5" y="-15.5" width="31" height="31" fill="#fff0a1" stroke="#7a2030" stroke-width="4" />
+    </g>
+
+    <text x="102.5" y="255" fill="#fff4c9" stroke="#5b1723" stroke-width="2" paint-order="stroke" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="10" font-weight="900" letter-spacing="0.7">CONTEM 1 CARD</text>
+    <path d="M11 273 H194" fill="none" stroke="#d88d46" stroke-width="2" stroke-dasharray="7 5" />
+  </g>
+
+  <rect x="1.5" y="1.5" width="202" height="282" rx="6" fill="none" stroke="#122437" stroke-width="3" />
+</svg>
